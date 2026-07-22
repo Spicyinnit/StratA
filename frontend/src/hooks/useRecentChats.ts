@@ -15,7 +15,7 @@ function save(meId: number, contacts: RecentContact[]) {
   try {
     localStorage.setItem(`recentChats_${meId}`, JSON.stringify(contacts));
   } catch {
-    // ignore
+    //ignore
   }
 }
 
