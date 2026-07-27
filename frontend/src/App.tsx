@@ -41,12 +41,11 @@ export default function App() {
 
   const loadMessages = React.useCallback(() => {
     fetch(`${API_BASE}/api/conversations/${meId}/${otherId}/`)
-      .then((res) => res.json())
-      .then((data) => setMessages(toChatMessages(data.messages, meId)));
+       .then((res) => res.json())
+       .then((data) => setMessages(toChatMessages(data.messages, meId)));
   }, [meId, otherId]);
 
   React.useEffect(() => {
-    loadMessages();
     const interval = setInterval(loadMessages, 2000);
     return () => clearInterval(interval);
   }, [loadMessages]);
@@ -60,8 +59,7 @@ export default function App() {
           return new ReadableStream({ start(c) { c.close(); } });
         }
         const formData = new FormData();
-        formData.append('sender_id', String(meId));
-        formData.append('text', text);
+        formData.append('sender_id', String(meId));formData.append('text', text);
         if (attachments[0]) formData.append('image', attachments[0].file);
 
         await fetch(`${API_BASE}/api/conversations/1/send/`, { method: 'POST', body: formData });
