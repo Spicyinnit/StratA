@@ -10,7 +10,6 @@ from django.contrib.auth.models import User
 from .models import Conversation, Message, UserProfile
 from .serializers import UserProfileSerializer, UserSerializer, ConversationSerializer, MessageSerializer
 
-
 class LoginView(ObtainAuthToken):
     permission_classes = [AllowAny]
     def post(self, request, *args, **kwargs):
@@ -72,7 +71,7 @@ def get_or_create_conversation(request, user1_id, user2_id):
     if not convo:
         convo = Conversation.objects.create()
         convo.participants.add(user1, user2)
-    return Response(ConversationSerializer(convo).data)
+    return Response(ConversationSerializer(convo, context={'request': request}).data)  #convo lang framework ???
 
 
 @api_view(['POST'])
@@ -135,3 +134,5 @@ def unread_counts(request):
         if count > 0:
             data.append({'conversation_id': convo.id, 'unread_count': count})
     return Response(data)
+
+

@@ -27,6 +27,7 @@ export default function App() {
   const [otherUser, setOtherUser] = React.useState<{ handle: string; avatar: string | null } | null>(null);
   const [activeTab, setActiveTab] = React.useState<'chats' | 'profile'>('chats');
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+  const [conversationId, setConversationId] = React.useState<number | null>(null);
   const { recentChats, addOrBump } = useRecentChats(meId);
 
   const conversations: ChatConversation[] = [
@@ -39,13 +40,24 @@ export default function App() {
     addOrBump(contact);
   };
 
+  // Hits get_or_create_conversation, which returns the conversation object
+  // (including its real id + nested messages). We stash the id so sendMessage
+
   const loadMessages = React.useCallback(() => {
     fetch(`${API_BASE}/api/conversations/${meId}/${otherId}/`)
-       .then((res) => res.json())
-       .then((data) => setMessages(toChatMessages(data.messages, meId)));
+      .then((res) => {
+        if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        setConversationId(data.id);
+        setMessages(toChatMessages(data.messages, meId));
+      })
+      .catch((err) => console.error(err));
   }, [meId, otherId]);
 
   React.useEffect(() => {
+    loadMessages();
     const interval = setInterval(loadMessages, 2000);
     return () => clearInterval(interval);
   }, [loadMessages]);
@@ -53,21 +65,32 @@ export default function App() {
   const adapter = React.useMemo(
     () => ({
       async sendMessage(input: any) {
+        if (!conversationId) {
+          return new ReadableStream({ start(c) { c.close(); } });
+        }
+
         const text = input.message?.parts?.[0]?.text ?? '';
         const attachments = input.attachments ?? [];
         if (!text.trim() && attachments.length === 0) {
           return new ReadableStream({ start(c) { c.close(); } });
         }
         const formData = new FormData();
-        formData.append('sender_id', String(meId));formData.append('text', text);
+        formData.append('sender_id', String(meId));
+        formData.append('text', text);
         if (attachments[0]) formData.append('image', attachments[0].file);
 
-        await fetch(`${API_BASE}/api/conversations/1/send/`, { method: 'POST', body: formData });
+        const res = await fetch(`${API_BASE}/api/conversations/${conversationId}/send/`, {
+          method: 'POST',
+          body: formData,
+        });
+        if (!res.ok) {
+          console.error('send failed', res.status);
+        }
         loadMessages();
         return new ReadableStream({ start(controller) { controller.close(); } });
       },
     }),
-    [meId, loadMessages],
+    [meId, conversationId, loadMessages],
   );
 
   return (
@@ -129,4 +152,3 @@ export default function App() {
     </div>
   );
 }
-  
