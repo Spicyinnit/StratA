@@ -1,5 +1,5 @@
 """
-WSGI config for strata1 project.
+WSGI config for strata project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

@@ -18,6 +18,7 @@ class MessageSerializer(serializers.ModelSerializer):
     def get_sender_avatar(self, obj):
         try:
             profile = obj.sender.userprofile  # change to obj.sender.profile if related_name differs
+            print(profile)
         except UserProfile.DoesNotExist:
             return None
         if not profile.avatar:

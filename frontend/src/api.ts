@@ -23,7 +23,8 @@ export function toChatMessages(apiMessages: any[], meId: number) {
     },
     parts: [
       ...(m.text ? [{ type: 'text' as const, text: m.text }] : []),
-      ...(m.image ? [{ type: 'file' as const, url: `${API_BASE}${m.image}`, mediaType: guessMediaType(m.image) }] : []),
+      ...(m.image ? [{
+      type: 'file' as const,url: m.image.startsWith('http') ? m.image : `${API_BASE}${m.image}`, mediaType: guessMediaType(m.image),}] : []),
     ],
   }));
 }

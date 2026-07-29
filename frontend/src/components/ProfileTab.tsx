@@ -37,7 +37,7 @@ export function ProfileTab({ meId }: Props) {
     if (!avatarFile) return;
     const formData = new FormData();
     formData.append('avatar', avatarFile);
-    fetch(`${API_BASE}/api/users/${meId}/avatar/`, { method: 'PATCH', body: formData })
+    fetch(`${API_BASE}/api/users/${meId}/avatar/`, { method: 'PATCH', body: formData  })
       .then((res) => res.json())
       .then(() => {
         setSaved(true);
