@@ -7,6 +7,9 @@ import { useRecentChats, type RecentContact } from './hooks/useRecentChats';
 import { SearchBar } from './components/SearchBar';
 import { RecentChatsList } from './components/RecentChatsList';
 import { ProfileTab } from './components/ProfileTab';
+import { useAuth } from './AuthContext';
+import LoginPage from './LoginPage';
+
 
 const retroTheme = createTheme({
   palette: {
@@ -21,7 +24,7 @@ const retroTheme = createTheme({
   },
 });
 
-export default function App() {
+function ChatApp() {
   const [meId, setMeId] = React.useState<1 | 2>(1);
   const [otherId, setOtherId] = React.useState<number>(2);
   const [otherUser, setOtherUser] = React.useState<{ handle: string; avatar: string | null } | null>(null);
@@ -151,4 +154,10 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+export default function App() {
+  const { user } = useAuth();
+  if (!user) return <LoginPage />;
+  return <ChatApp />;
 }

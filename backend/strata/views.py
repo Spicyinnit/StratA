@@ -6,6 +6,8 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+
 
 from .models import Conversation, Message, UserProfile
 from .serializers import UserProfileSerializer, UserSerializer, ConversationSerializer, MessageSerializer
@@ -134,5 +136,21 @@ def unread_counts(request):
         if count > 0:
             data.append({'conversation_id': convo.id, 'unread_count': count})
     return Response(data)
+
+@api_view(['POST'])
+def login_view(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    user = authenticate(username=username, password=password)
+    if user is None:
+        return Response({'error': 'Wrong username or password'}, status=400)
+
+    token, _ = Token.objects.get_or_create(user=user)
+    return Response({
+        'token': token.key,
+        'user_id': user.id,
+        'username': user.username,
+    })
 
 

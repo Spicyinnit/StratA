@@ -4,10 +4,9 @@ from .views import LoginView
 
 urlpatterns = [
     # auth
-    path('login/', LoginView.as_view()),
-    path('logout/', views.logout_view),
+    path('login/', views.login_view, name='login'),
 
-    # existing
+    # exist
     path('users/', views.user_list),
     path('', views.home),
     path('conversations/<int:user1_id>/<int:user2_id>/', views.get_or_create_conversation),
