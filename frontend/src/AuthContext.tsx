@@ -11,6 +11,7 @@ type AuthUser = {
 type AuthContextType = {
   user: AuthUser | null;
   login: (username: string, password: string) => Promise<void>;
+  register: (username: string, password: string, password2: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -22,16 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : null;
   });
 
-  async function login(username: string, password: string) {
-    const res = await fetch(`${API_BASE}/api/login/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Login failed');
-
+  function applyAuth(data: any) {
     const authUser = {
       token: data.token,
       id: data.user_id,
@@ -41,13 +33,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(authUser);
   }
 
+  async function login(username: string, password: string) {
+    const res = await fetch(`${API_BASE}/api/login/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+    applyAuth(data);
+  }
+
+  async function register(username: string, password: string, password2: string) {
+    const res = await fetch(`${API_BASE}/api/register/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, password2 }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const first = Object.values(data)[0];
+      throw new Error(Array.isArray(first) ? first[0] : 'Register failed');
+    }
+    applyAuth(data);
+  }
+
   function logout() {
+    const token = user?.token;
+    if (token) {
+      fetch(`${API_BASE}/api/logout/`, {
+        method: 'POST',
+        headers: { Authorization: `Token ${token}` },
+      }).catch(() => {});
+    }
     localStorage.removeItem('auth');
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

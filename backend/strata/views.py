@@ -9,7 +9,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
 
 from .models import Conversation, Message, UserProfile
-from .serializers import UserProfileSerializer, UserSerializer, ConversationSerializer, MessageSerializer
+from .serializers import UserProfileSerializer, UserSerializer,ConversationSerializer, MessageSerializer, RegisterSerializer
+
 
 
 # auth 
@@ -28,6 +29,21 @@ class LoginView(ObtainAuthToken):
             'user_id': user.id,
             'username': user.username,
         })
+
+class RegisterView(generics.CreateAPIView):
+    serializer_class = RegisterSerializer
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.id,
+            'username': user.username,
+        }, status=201)
 
 
 @api_view(['POST'])

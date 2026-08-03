@@ -3,8 +3,9 @@ from . import views
 
 urlpatterns = [
     # auth
-    path('login/', views.LoginView.as_view(), name='login'),
-    path('logout/', views.logout_view, name='logout'),
+    path('login/', views.LoginView.as_view(), name='login'), #views.py 18.row
+    path('register/', views.RegisterView.as_view(), name='register'),#views.py 33.row
+    path('logout/', views.logout_view, name='logout'),#views.py 49.row
 
     # profile
     path('profile/me/', views.MyProfileView.as_view(), name='my-profile'),

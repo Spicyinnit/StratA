@@ -1,5 +1,4 @@
 export const API_BASE = `http://${window.location.hostname}:8000`;
-export const USERS: Record<number, string> = { 1: 'miko', 2: 'Misha' };
 export const HANDLE_REGEX = /^[a-zA-Z0-9_.]{3,30}$/;
 
 export function guessMediaType(url: string) {
@@ -18,8 +17,8 @@ export function toChatMessages(apiMessages: any[], meId: number) {
     role: m.sender === meId ? 'user' as const : 'assistant' as const,
     author: {
       id: String(m.sender),
-      displayName: USERS[m.sender] ?? 'Unknown',
-      avatarUrl: m.sender_avatar || undefined, // already an absolute URL from the API, don't prepend API_BASE
+      displayName: m.sender_name ?? 'Unknown',
+      avatarUrl: m.sender_avatar || undefined, // already an absolute URL from the API... don't prepend API_BASE
     },
     parts: [
       ...(m.text ? [{ type: 'text' as const, text: m.text }] : []),

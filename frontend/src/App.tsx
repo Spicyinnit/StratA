@@ -120,7 +120,6 @@ function ChatApp() {
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', padding: 24 }}>
         <div style={{ flex: 1, background: '#FAF3E1', borderRadius: 18, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
-          <ThemeProvider theme={retroTheme}>
             <ChatBox
               adapter={adapter}
               conversations={conversations}
@@ -129,7 +128,6 @@ function ChatApp() {
               features={{ conversationList: false }}
               onMessagesChange={setMessages}
             />
-          </ThemeProvider>
         </div>
       </div>
 
@@ -140,6 +138,9 @@ function ChatApp() {
 
 export default function App() {
   const { user } = useAuth();
-  if (!user) return <LoginPage />;
-  return <ChatApp />;
+  return (
+    <ThemeProvider theme={retroTheme}>
+      {user ? <ChatApp /> : <LoginPage />}
+    </ThemeProvider>
+  );
 }
