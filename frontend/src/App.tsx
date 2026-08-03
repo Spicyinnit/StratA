@@ -2,14 +2,14 @@ import * as React from 'react';
 import { ChatBox } from '@mui/x-chat';
 import type { ChatConversation, ChatMessage } from '@mui/x-chat/headless';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { API_BASE, USERS, toChatMessages } from './api';
+import { Avatar, IconButton } from '@mui/material';
+import { apiFetch, toChatMessages } from './api';
 import { useRecentChats, type RecentContact } from './hooks/useRecentChats';
 import { SearchBar } from './components/SearchBar';
 import { RecentChatsList } from './components/RecentChatsList';
-import { ProfileTab } from './components/ProfileTab';
+import ProfileDialog from './components/ProfileDialog';
 import { useAuth } from './AuthContext';
 import LoginPage from './LoginPage';
-
 
 const retroTheme = createTheme({
   palette: {
@@ -25,16 +25,18 @@ const retroTheme = createTheme({
 });
 
 function ChatApp() {
-  const [meId, setMeId] = React.useState<1 | 2>(1);
-  const [otherId, setOtherId] = React.useState<number>(2);
+  const { user } = useAuth();
+  const meId = user!.id;
+
+  const [otherId, setOtherId] = React.useState<number | null>(null);
   const [otherUser, setOtherUser] = React.useState<{ handle: string; avatar: string | null } | null>(null);
-  const [activeTab, setActiveTab] = React.useState<'chats' | 'profile'>('chats');
+  const [profileOpen, setProfileOpen] = React.useState(false);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = React.useState<number | null>(null);
   const { recentChats, addOrBump } = useRecentChats(meId);
 
   const conversations: ChatConversation[] = [
-    { id: 'main', title: `Chat with ${otherUser?.handle ?? USERS[otherId] ?? 'Unknown'}`, readState: 'read' },
+    { id: 'main', title: otherUser ? `Chat with ${otherUser.handle}` : 'No chat selected', readState: 'read' },
   ];
 
   const openChat = (contact: RecentContact) => {
@@ -45,9 +47,10 @@ function ChatApp() {
 
   // Hits get_or_create_conversation, which returns the conversation object
   // (including its real id + nested messages). We stash the id so sendMessage
-
+  // knows where to post.
   const loadMessages = React.useCallback(() => {
-    fetch(`${API_BASE}/api/conversations/${meId}/${otherId}/`)
+    if (!otherId) return;
+    apiFetch(`/api/conversations/${meId}/${otherId}/`)
       .then((res) => {
         if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
         return res.json();
@@ -60,10 +63,15 @@ function ChatApp() {
   }, [meId, otherId]);
 
   React.useEffect(() => {
+    if (!otherId) {
+      setMessages([]);
+      setConversationId(null);
+      return;
+    }
     loadMessages();
     const interval = setInterval(loadMessages, 2000);
     return () => clearInterval(interval);
-  }, [loadMessages]);
+  }, [loadMessages, otherId]);
 
   const adapter = React.useMemo(
     () => ({
@@ -77,65 +85,37 @@ function ChatApp() {
         if (!text.trim() && attachments.length === 0) {
           return new ReadableStream({ start(c) { c.close(); } });
         }
+
         const formData = new FormData();
-        formData.append('sender_id', String(meId));
-        formData.append('text', text);
+        formData.append('text', text);            // sender comes from the token now
         if (attachments[0]) formData.append('image', attachments[0].file);
 
-        const res = await fetch(`${API_BASE}/api/conversations/${conversationId}/send/`, {
+        const res = await apiFetch(`/api/conversations/${conversationId}/send/`, {
           method: 'POST',
           body: formData,
         });
-        if (!res.ok) {
-          console.error('send failed', res.status);
-        }
+        if (!res.ok) console.error('send failed', res.status);
+
         loadMessages();
         return new ReadableStream({ start(controller) { controller.close(); } });
       },
     }),
-    [meId, conversationId, loadMessages],
+    [conversationId, loadMessages],
   );
 
   return (
     <div style={{ height: '100vh', width: '100vw', display: 'flex', background: '#222222', fontFamily: '"Inter", system-ui, sans-serif' }}>
       <div style={{ width: 280, flexShrink: 0, background: '#2a2a2a', borderRight: '1px solid #3a3a3a', display: 'flex', flexDirection: 'column', padding: '20px 16px' }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <button
-            onClick={() => setActiveTab('chats')}
-            style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', background: activeTab === 'chats' ? '#FF6D1F' : '#3a3a3a', color: activeTab === 'chats' ? '#222222' : '#FAF3E1', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
-          >
-            Chats
-          </button>
-          <button
-            onClick={() => setActiveTab('profile')}
-            style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', background: activeTab === 'profile' ? '#FF6D1F' : '#3a3a3a', color: activeTab === 'profile' ? '#222222' : '#FAF3E1', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
-          >
-            Profile
-          </button>
+        {/* logo button -> profile + settings popup */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <IconButton onClick={() => setProfileOpen(true)} sx={{ p: 0.5 }}>
+            <Avatar src="/logo.png" sx={{ width: 40, height: 40 }} />
+          </IconButton>
+          <span style={{ color: '#FAF3E1', fontWeight: 600, fontSize: 14 }}>{user!.username}</span>
         </div>
 
-        {activeTab === 'chats' && (
-          <>
-            <SearchBar meId={meId} onSelect={(u) => openChat({ user_id: u.user_id, handle: u.handle, avatar: u.avatar })} />
-            <RecentChatsList chats={recentChats} activeId={otherId} onSelect={openChat} />
-          </>
-        )}
-
-        {activeTab === 'profile' && <ProfileTab meId={meId} />}
-
-        <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid #3a3a3a' }}>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {([1, 2] as const).map((id) => (
-              <button
-                key={id}
-                onClick={() => setMeId(id)}
-                style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: '1px solid #3a3a3a', background: meId === id ? '#FF6D1F' : 'transparent', color: meId === id ? '#222222' : '#8a7854', fontWeight: meId === id ? 600 : 400, fontSize: 13, cursor: 'pointer' }}
-              >
-                {USERS[id]}
-              </button>
-            ))}
-          </div>
-        </div>
+        <SearchBar meId={meId} onSelect={(u) => openChat({ user_id: u.user_id, handle: u.handle, avatar: u.avatar })} />
+        <RecentChatsList chats={recentChats} activeId={otherId ?? -1} onSelect={openChat} />
       </div>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', padding: 24 }}>
@@ -152,6 +132,8 @@ function ChatApp() {
           </ThemeProvider>
         </div>
       </div>
+
+      <ProfileDialog open={profileOpen} onClose={() => setProfileOpen(false)} />
     </div>
   );
 }

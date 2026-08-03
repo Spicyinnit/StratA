@@ -1,10 +1,13 @@
 from django.urls import path
 from . import views
-from .views import LoginView
 
 urlpatterns = [
     # auth
-    path('login/', views.login_view, name='login'),
+    path('login/', views.LoginView.as_view(), name='login'),
+    path('logout/', views.logout_view, name='logout'),
+
+    # profile
+    path('profile/me/', views.MyProfileView.as_view(), name='my-profile'),
 
     # exist
     path('users/', views.user_list),
@@ -12,9 +15,7 @@ urlpatterns = [
     path('conversations/<int:user1_id>/<int:user2_id>/', views.get_or_create_conversation),
     path('conversations/<int:conversation_id>/messages/', views.list_messages),
     path('conversations/<int:conversation_id>/send/', views.send_message),
-    path('users/<int:user_id>/avatar/', views.upload_avatar, name='upload_avatar'),
     path('search-users/', views.search_users, name='search-users'),
-    path('users/<int:user_id>/profile/', views.update_profile, name='update-profile'),
     path('conversations/<int:conversation_id>/mark-read/', views.mark_read),
     path('conversations/unread-counts/', views.unread_counts),
 ]

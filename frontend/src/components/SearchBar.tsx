@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { API_BASE } from '../api';
+import { apiFetch } from '../api';
 
 type Props = {
   meId: number;
@@ -18,7 +18,7 @@ export function SearchBar({ meId, onSelect }: Props) {
       return;
     }
     const timeout = setTimeout(() => {
-      fetch(`${API_BASE}/api/search-users/?q=${query}&exclude_id=${meId}`)
+      apiFetch(`/api/search-users/?q=${encodeURIComponent(query)}`)
         .then((res) => res.json())
         .then((data) => {
           setResults(data);
@@ -26,7 +26,7 @@ export function SearchBar({ meId, onSelect }: Props) {
         });
     }, 300);
     return () => clearTimeout(timeout);
-  }, [query, meId]);
+  }, [query]);
 
   React.useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

@@ -6,6 +6,8 @@ SECRET_KEY = 'django-insecure-a_0c-%=8+xf&7oqn#x4+0%etm5xjlq&fb&8#82nnvy*&5=tcqx
 
 DEBUG = True
 
+CORS_ALLOW_ALL_ORIGINS = True
+
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
@@ -79,8 +81,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ],
 }
 
-CORS_ALLOW_ALL_ORIGINS = True

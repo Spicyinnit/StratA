@@ -4,7 +4,7 @@ import { API_BASE } from './api';
 
 type AuthUser = {
   token: string;
-  userId: number;
+  id: number;
   username: string;
 };
 
@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const authUser = {
       token: data.token,
-      userId: data.user_id,
+      id: data.user_id,
       username: data.username,
     };
     localStorage.setItem('auth', JSON.stringify(authUser));

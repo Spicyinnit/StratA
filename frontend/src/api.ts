@@ -28,3 +28,28 @@ export function toChatMessages(apiMessages: any[], meId: number) {
     ],
   }));
 }
+
+export function getToken(): string | null {
+  const raw = localStorage.getItem('auth');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw).token ?? null;
+  } catch {
+    return raw;
+  }
+}
+
+export async function apiFetch(path: string, options: RequestInit = {}) {
+  const token = getToken();
+  const headers = new Headers(options.headers);
+  if (token) headers.set('Authorization', `Token ${token}`);
+  if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  if (res.status === 401) {
+    localStorage.removeItem('auth');
+    window.location.reload();
+  }
+  return res;
+}
