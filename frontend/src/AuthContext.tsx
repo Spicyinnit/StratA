@@ -1,6 +1,6 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import { API_BASE } from './api';
+import { API_BASE, apiFetch } from './api';
 
 type AuthUser = {
   token: string;
@@ -8,8 +8,17 @@ type AuthUser = {
   username: string;
 };
 
+type MyProfile = {
+  tag: string;
+  display_name: string;
+  bio: string;
+  avatar: string | null;
+};
+
 type AuthContextType = {
   user: AuthUser | null;
+  profile: MyProfile | null;
+  refreshProfile: () => Promise<void>;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string, password2: string) => Promise<void>;
   logout: () => void;
@@ -22,6 +31,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('auth');
     return saved ? JSON.parse(saved) : null;
   });
+  const [profile, setProfile] = useState<MyProfile | null>(null);
+
+  const refreshProfile = useCallback(async () => {
+    if (!localStorage.getItem('auth')) return;
+    try {
+      const r = await apiFetch('/api/profile/me/');
+      if (!r.ok) return;
+      const d = await r.json();
+      setProfile({
+        tag: d.tag ?? '',
+        display_name: d.display_name ?? '',
+        bio: d.bio ?? '',
+        avatar: d.avatar ? (d.avatar.startsWith('http') ? d.avatar : API_BASE + d.avatar) : null,
+      });
+    } catch {
+      // dont blow up the app if the profile fetch fails
+    }
+  }, []);
+
+  // load my profile whenever I'm logged in
+  useEffect(() => {
+    if (user) refreshProfile();
+    else setProfile(null);
+  }, [user, refreshProfile]);
 
   function applyAuth(data: any) {
     const authUser = {
@@ -68,10 +101,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     localStorage.removeItem('auth');
     setUser(null);
+    setProfile(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, profile, refreshProfile, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

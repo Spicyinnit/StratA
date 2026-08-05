@@ -3,7 +3,7 @@ import { apiFetch } from '../api';
 
 type Props = {
   meId: number;
-  onSelect: (u: { user_id: number; handle: string; avatar: string | null }) => void;
+  onSelect: (u: { user_id: number; tag: string; avatar: string | null }) => void;
 };
 
 export function SearchBar({ meId, onSelect }: Props) {
@@ -44,7 +44,7 @@ export function SearchBar({ meId, onSelect }: Props) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setShow(true)}
-        placeholder="Search @handle..."
+        placeholder="Search @tag..."
         style={{
           background: '#3a3a3a',
           border: '1px solid #444',
@@ -85,7 +85,7 @@ export function SearchBar({ meId, onSelect }: Props) {
               onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a4a')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              @{u.handle}
+              @{u.tag}
             </div>
           ))}
         </div>

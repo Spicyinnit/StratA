@@ -1,5 +1,5 @@
 export const API_BASE = `http://${window.location.hostname}:8000`;
-export const HANDLE_REGEX = /^[a-zA-Z0-9_.]{3,30}$/;
+export const TAG_REGEX = /^[a-zA-Z0-9_.]{3,30}$/;
 
 export function guessMediaType(url: string) {
   const ext = url.split('.').pop()?.toLowerCase();
@@ -22,8 +22,7 @@ export function toChatMessages(apiMessages: any[], meId: number) {
     },
     parts: [
       ...(m.text ? [{ type: 'text' as const, text: m.text }] : []),
-      ...(m.image ? [{
-      type: 'file' as const,url: m.image.startsWith('http') ? m.image : `${API_BASE}${m.image}`, mediaType: guessMediaType(m.image),}] : []),
+      ...(m.image ? [{type: 'file' as const,url: m.image.startsWith('http') ? m.image : `${API_BASE}${m.image}`, mediaType: guessMediaType(m.image),}] : []),
     ],
   }));
 }
@@ -51,4 +50,11 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     window.location.reload();
   }
   return res;
+}
+
+export async function deleteConversationWith(conversationId: number) {
+  const res = await apiFetch(`/api/conversations/with/${conversationId}/delete/`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Delete failed");
 }

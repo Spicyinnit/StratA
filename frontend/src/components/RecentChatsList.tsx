@@ -1,18 +1,17 @@
-import * as React from 'react';     //dont touch let it be here i knwo myself why i added it (maybe) (if i didnt forgot already)
-import { API_BASE } from '../api';
 import type { RecentContact } from '../hooks/useRecentChats';
 
 type Props = {
   chats: RecentContact[];
   activeId: number;
   onSelect: (c: RecentContact) => void;
+  onDelete: (c: RecentContact) => void;
 };
 
-export function RecentChatsList({ chats, activeId, onSelect }: Props) {
+export function RecentChatsList({ chats, activeId, onSelect, onDelete }: Props) {
   if (chats.length === 0) {
     return (
       <div style={{ color: '#8a7854', fontSize: 13, padding: '8px 4px' }}>
-        No chats yet — search a handle above to start one.
+        No chats yet.
       </div>
     );
   }
@@ -56,12 +55,31 @@ export function RecentChatsList({ chats, activeId, onSelect }: Props) {
             }}
           >
             {c.avatar ? (
-              <img src={`${API_BASE}${c.avatar}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={c.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              c.handle[0].toUpperCase()
+              c.tag[0].toUpperCase()
             )}
           </div>
-          <span style={{ color: '#FAF3E1', fontSize: 15 }}>{c.handle}</span>
+          <span style={{ color: '#FAF3E1', fontSize: 15 }}>{c.tag}</span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(c);
+            }}
+            style={{
+              marginLeft: 'auto',
+              background: 'none',
+              border: 'none',
+              color: '#8a7854',
+              cursor: 'pointer',
+              fontSize: 16,
+              padding: '0 4px',
+              lineHeight: 1,
+            }}
+            title="Delete chat"
+          >
+            ✕
+          </button>
         </div>
       ))}
     </div>

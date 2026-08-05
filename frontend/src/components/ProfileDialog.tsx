@@ -18,12 +18,12 @@ import { useAuth } from "../AuthContext";
 
 type Profile = {
   display_name: string;
-  handle: string;
+  tag: string;
   bio: string;
   avatar: string | null;
 };
 
-const EMPTY: Profile = { display_name: "", handle: "", bio: "", avatar: null };
+const EMPTY: Profile = { display_name: "", tag: "", bio: "", avatar: null };
 
 export default function ProfileDialog({
   open,
@@ -32,8 +32,8 @@ export default function ProfileDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const { user, logout } = useAuth();
-  const [p, setP] = useState<Profile>(EMPTY);
+  const { user, logout, refreshProfile } = useAuth();
+  const [profile, setP] = useState<Profile>(EMPTY);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,7 +56,7 @@ export default function ProfileDialog({
       .then((d) =>
         setP({
           display_name: d.display_name ?? "",
-          handle: d.handle ?? "",
+          tag: d.tag ?? "",
           bio: d.bio ?? "",
           avatar: d.avatar ? (d.avatar.startsWith("http") ? d.avatar : API_BASE + d.avatar) : null,
         })
@@ -72,17 +72,12 @@ export default function ProfileDialog({
   };
 
   const save = async () => {
-    if (!p.handle.trim()) {
-      setMsg({ type: "err", text: "Handle can't be empty." });
-      return;
-    }
     setSaving(true);
     setMsg(null);
     try {
       const fd = new FormData();
-      fd.append("display_name", p.display_name);
-      fd.append("handle", p.handle);
-      fd.append("bio", p.bio);
+      fd.append("display_name", profile.display_name);
+      fd.append("bio", profile.bio);
       if (file) fd.append("avatar", file);
 
       const r = await apiFetch(`/api/profile/me/`, {
@@ -97,6 +92,7 @@ export default function ProfileDialog({
       }));
       setFile(null);
       setMsg({ type: "ok", text: "Profile saved." });
+      refreshProfile();
     } catch (e: any) {
       setMsg({ type: "err", text: e.message });
     } finally {
@@ -139,10 +135,10 @@ export default function ProfileDialog({
                 }
               >
                 <Avatar
-                  src={preview ?? p.avatar ?? undefined}
+                  src={preview ?? profile.avatar ?? undefined}
                   sx={{ width: 88, height: 88, fontSize: 32 }}
                 >
-                  {(p.display_name || p.handle || user?.username || "?")[0]?.toUpperCase()}
+                  {(profile.display_name || profile.tag || user?.username || "?")[0]?.toUpperCase()}
                 </Avatar>
               </Badge>
               <input
@@ -153,7 +149,7 @@ export default function ProfileDialog({
                 onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
               />
               <Typography variant="body2" color="text.secondary">
-                @{p.handle || user?.username}
+                @{profile.tag || user?.username}
               </Typography>
             </Box>
 
@@ -161,15 +157,16 @@ export default function ProfileDialog({
               label="Name"
               size="small"
               fullWidth
-              value={p.display_name}
-              onChange={(e) => setP({ ...p, display_name: e.target.value })}
+              value={profile.display_name}
+              onChange={(e) => setP({ ...profile, display_name: e.target.value })}
             />
             <TextField
-              label="Handle"
+              label="Tag"
               size="small"
               fullWidth
-              value={p.handle}
-              onChange={(e) => setP({ ...p, handle: e.target.value.replace(/\s/g, "") })}
+              disabled
+              value={profile.tag || user?.username || ""}
+              helperText="This is your login — can't be changed yet"
               slotProps={{ input: { startAdornment: <Box sx={{ mr: 0.5, opacity: 0.6 }}>@</Box> } }}
             />
             <TextField
@@ -178,10 +175,10 @@ export default function ProfileDialog({
               fullWidth
               multiline
               minRows={3}
-              helperText={`${p.bio.length}/200`}
+              helperText={`${profile.bio.length}/200`}
               slotProps={{ htmlInput: { maxLength: 200 } }}
-              value={p.bio}
-              onChange={(e) => setP({ ...p, bio: e.target.value })}
+              value={profile.bio}
+              onChange={(e) => setP({ ...profile, bio: e.target.value })}
             />
 
             {msg && <Alert severity={msg.type === "ok" ? "success" : "error"}>{msg.text}</Alert>}

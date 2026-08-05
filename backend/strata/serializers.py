@@ -27,8 +27,8 @@ class MessageSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         url = profile.avatar.url
         return request.build_absolute_uri(url) if request else url
-    
-    def get_sender_name(self, obj):  ###remake later 
+
+    def get_sender_name(self, obj):
         try:
             profile = obj.sender.profile
         except UserProfile.DoesNotExist:
@@ -43,14 +43,13 @@ class ConversationSerializer(serializers.ModelSerializer):
         fields = ['id', 'participants', 'messages']
 
 
-class UserProfileSerializer(serializers.ModelSerializer):     #That will be used to display user information
-    username = serializers.CharField(source="user.username", read_only=True)
+class UserProfileSerializer(serializers.ModelSerializer):
+    tag = serializers.CharField(source="user.username", read_only=True)
+
     class Meta:
         model = UserProfile
-        fields = ["id", "username", "display_name", "handle", "bio", "avatar"]
+        fields = ["id", "tag", "display_name", "bio", "avatar"]
 
-    def validate_handle(self, value):
-        return None if value == "" else value
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)

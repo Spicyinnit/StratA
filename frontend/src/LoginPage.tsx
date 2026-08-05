@@ -39,7 +39,7 @@ export default function LoginPage() {
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <Card sx={{ p: 4, width: 320, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Card sx={{ profile: 4, width: 320, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Typography variant="h5">Strata</Typography>
 
         {error && <Alert severity="error">{error}</Alert>}

@@ -1,9 +1,9 @@
-import * as React from 'react';
+import * as React from 'react';    
 import { ChatBox } from '@mui/x-chat';
 import type { ChatConversation, ChatMessage } from '@mui/x-chat/headless';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Avatar, IconButton } from '@mui/material';
-import { apiFetch, toChatMessages } from './api';
+import { apiFetch, toChatMessages, deleteConversationWith } from './api';
 import { useRecentChats, type RecentContact } from './hooks/useRecentChats';
 import { SearchBar } from './components/SearchBar';
 import { RecentChatsList } from './components/RecentChatsList';
@@ -25,24 +25,41 @@ const retroTheme = createTheme({
 });
 
 function ChatApp() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const meId = user!.id;
 
   const [otherId, setOtherId] = React.useState<number | null>(null);
-  const [otherUser, setOtherUser] = React.useState<{ handle: string; avatar: string | null } | null>(null);
+  const [otherUser, setOtherUser] = React.useState<{ tag: string; avatar: string | null } | null>(null);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = React.useState<number | null>(null);
-  const { recentChats, addOrBump } = useRecentChats(meId);
+  const { recentChats, addOrBump, remove } = useRecentChats(meId);
 
   const conversations: ChatConversation[] = [
-    { id: 'main', title: otherUser ? `Chat with ${otherUser.handle}` : 'No chat selected', readState: 'read' },
+    { id: 'main', title: otherUser ? `Chat with ${otherUser.tag}` : 'No chat selected', readState: 'read' },
   ];
 
   const openChat = (contact: RecentContact) => {
     setOtherId(contact.user_id);
-    setOtherUser({ handle: contact.handle, avatar: contact.avatar });
+    setOtherUser({ tag: contact.tag, avatar: contact.avatar });
     addOrBump(contact);
+  };
+
+  const handleDelete = async (contact: RecentContact) => {
+    const name = contact.display_name || contact.tag;
+    if (!confirm(`Delete your chat with ${name}? This erases all messages for both of you.`)) return;
+    try {
+      await deleteConversationWith(contact.user_id);
+    } catch (err) {
+      console.error(err);
+      alert('Could not delete the chat.');
+      return;
+    }
+    remove(contact.user_id);
+    if (otherId === contact.user_id) {
+      setOtherId(null);
+      setOtherUser(null);
+    }
   };
 
   // Hits get_or_create_conversation, which returns the conversation object
@@ -106,16 +123,20 @@ function ChatApp() {
   return (
     <div style={{ height: '100vh', width: '100vw', display: 'flex', background: '#222222', fontFamily: '"Inter", system-ui, sans-serif' }}>
       <div style={{ width: 280, flexShrink: 0, background: '#2a2a2a', borderRight: '1px solid #3a3a3a', display: 'flex', flexDirection: 'column', padding: '20px 16px' }}>
-        {/* logo button -> profile + settings popup */}
+        {/* avatar button -> profile + settings popup */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <IconButton onClick={() => setProfileOpen(true)} sx={{ p: 0.5 }}>
-            <Avatar src="/logo.png" sx={{ width: 40, height: 40 }} />
+            <Avatar src={profile?.avatar ?? undefined} sx={{ width: 40, height: 40 }}>
+              {(profile?.display_name || user!.username)[0]?.toUpperCase()}
+            </Avatar>
           </IconButton>
-          <span style={{ color: '#FAF3E1', fontWeight: 600, fontSize: 14 }}>{user!.username}</span>
+          <span style={{ color: '#FAF3E1', fontWeight: 600, fontSize: 14 }}>
+            {profile?.display_name || user!.username}
+          </span>
         </div>
 
-        <SearchBar meId={meId} onSelect={(u) => openChat({ user_id: u.user_id, handle: u.handle, avatar: u.avatar })} />
-        <RecentChatsList chats={recentChats} activeId={otherId ?? -1} onSelect={openChat} />
+        <SearchBar meId={meId} onSelect={(u) => openChat({ user_id: u.user_id, tag: u.tag, avatar: u.avatar })} />
+        <RecentChatsList chats={recentChats} activeId={otherId ?? -1} onSelect={openChat} onDelete={handleDelete} />
       </div>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', padding: 24 }}>
@@ -130,7 +151,6 @@ function ChatApp() {
             />
         </div>
       </div>
-
       <ProfileDialog open={profileOpen} onClose={() => setProfileOpen(false)} />
     </div>
   );

@@ -7,13 +7,14 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
+from rest_framework.generics import RetrieveAPIView
+
 
 from .models import Conversation, Message, UserProfile
-from .serializers import UserProfileSerializer, UserSerializer,ConversationSerializer, MessageSerializer, RegisterSerializer
+from .serializers import UserProfileSerializer, UserSerializer, ConversationSerializer, MessageSerializer, RegisterSerializer
 
 
-
-# auth 
+# auth
 
 class LoginView(ObtainAuthToken):
     permission_classes = [AllowAny]
@@ -21,7 +22,7 @@ class LoginView(ObtainAuthToken):
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data, context={'request': request})
         if not serializer.is_valid():
-            return Response({'error': 'Wrong username or password'}, status=400)
+            return Response({'error': 'Wrong tag or password'}, status=400)
         user = serializer.validated_data['user']
         token, _ = Token.objects.get_or_create(user=user)
         return Response({
@@ -29,6 +30,7 @@ class LoginView(ObtainAuthToken):
             'user_id': user.id,
             'username': user.username,
         })
+
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -70,21 +72,27 @@ class MyProfileView(generics.RetrieveUpdateAPIView):
 
 @api_view(['GET'])
 def search_users(request):
-    q = request.GET.get('q', '').strip()
+    q = request.GET.get('q', '').strip().lstrip('@')
     if len(q) < 1:
         return Response([])
 
-    profiles = (UserProfile.objects
-                .filter(handle__icontains=q)
-                .exclude(user=request.user)
-                .select_related('user')[:10])
+    users = (User.objects
+             .filter(username__icontains=q)
+             .exclude(id=request.user.id)
+             .select_related('profile')[:10])
 
-    data = [{
-        'user_id': p.user.id,
-        'handle': p.handle,
-        'display_name': p.display_name,
-        'avatar': request.build_absolute_uri(p.avatar.url) if p.avatar else None,
-    } for p in profiles]
+    data = []
+    for u in users:
+        profile = getattr(u, 'profile', None)
+        avatar = None
+        if profile and profile.avatar:
+            avatar = request.build_absolute_uri(profile.avatar.url)
+        data.append({
+            'user_id': u.id,
+            'tag': u.username,
+            'display_name': (profile.display_name if profile else '') or u.username,
+            'avatar': avatar,
+        })
     return Response(data)
 
 
@@ -125,7 +133,7 @@ def send_message(request, conversation_id):
 
     msg = Message.objects.create(
         conversation=convo,
-        sender=request.user,               # taken from the token, not the request body
+        sender=request.user,                 # taken from the token, not the request body
         text=request.data.get('text', ''),
         image=request.FILES.get('image'),
     )
@@ -161,3 +169,17 @@ def unread_counts(request):
         if count > 0:
             data.append({'conversation_id': convo.id, 'unread_count': count})
     return Response(data)
+
+class UserDetailView(RetrieveAPIView):
+    serializer_class = UserProfileSerializer
+
+    def get_object(self):
+        return get_object_or_404(User, pk=self.kwargs["pk"]).profile
+
+@api_view(["DELETE"])
+def delete_conversation_with(request, other_user_id):
+    convo = Conversation.objects.filter(participants=request.user).filter(participants__id=other_user_id).first()
+    if not convo:
+        return Response(status=204)
+    convo.delete()
+    return Response(status=204)

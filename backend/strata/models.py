@@ -7,12 +7,11 @@ def avatar_path(instance, filename):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     display_name = models.CharField(max_length=50, blank=True)
-    handle = models.CharField(max_length=30, unique=True, blank=True, null=True)
     bio = models.TextField(max_length=200, blank=True)
     avatar = models.ImageField(upload_to=avatar_path, blank=True, null=True)
 
     def __str__(self):
-        return self.handle or self.user.username
+        return self.user.username
 
 class Conversation(models.Model):
     participants = models.ManyToManyField(User, related_name='conversations')
@@ -25,4 +24,3 @@ class Message(models.Model):
     image = models.ImageField(upload_to='messages/', null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
-
