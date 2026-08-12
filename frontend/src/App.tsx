@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ChatBox } from '@mui/x-chat';
 import type { ChatConversation, ChatMessage } from '@mui/x-chat/headless';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { Avatar, IconButton } from '@mui/material';
+import { Avatar, IconButton, Snackbar, Alert } from '@mui/material';
 import { apiFetch, toChatMessages, deleteConversationWith } from './api';
 import { useRecentChats, type RecentContact } from './hooks/useRecentChats';
 import { SearchBar } from './components/SearchBar';
@@ -27,13 +27,15 @@ const retroTheme = createTheme({
 function ChatApp() {
   const { user, profile } = useAuth();
   const meId = user!.id;
-
-  const [otherId, setOtherId] = React.useState<number | null>(null);
+  const [otherId, setOtherId] = React.useState<number | null>(
+    () => Number(localStorage.getItem(`activeChat_${user!.id}`)) || null,
+  );
+  
   const [otherUser, setOtherUser] = React.useState<{ tag: string; avatar: string | null } | null>(null);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = React.useState<number | null>(null);
-  const { recentChats, addOrBump, remove } = useRecentChats(meId);
+  const { recentChats, addOrBump, remove, alert: newMsg, setAlert: setNewMsg } = useRecentChats(meId, otherId);
 
   const conversations: ChatConversation[] = [
     { id: 'main', title: otherUser ? `Chat with ${otherUser.tag}` : 'No chat selected', readState: 'read' },
@@ -43,6 +45,7 @@ function ChatApp() {
     setOtherId(contact.user_id);
     setOtherUser({ tag: contact.tag, avatar: contact.avatar });
     addOrBump(contact);
+    localStorage.setItem(`activeChat_${meId}`, String(contact.user_id));
   };
 
   const handleDelete = async (contact: RecentContact) => {
@@ -59,12 +62,11 @@ function ChatApp() {
     if (otherId === contact.user_id) {
       setOtherId(null);
       setOtherUser(null);
+      localStorage.removeItem(`activeChat_${meId}`);
     }
   };
 
-  // Hits get_or_create_conversation, which returns the conversation object
-  // (including its real id + nested messages). We stash the id so sendMessage
-  // knows where to post.
+
   const loadMessages = React.useCallback(() => {
     if (!otherId) return;
     apiFetch(`/api/conversations/${meId}/${otherId}/`)
@@ -89,6 +91,13 @@ function ChatApp() {
     const interval = setInterval(loadMessages, 2000);
     return () => clearInterval(interval);
   }, [loadMessages, otherId]);
+  React.useEffect(() => {
+    if (!otherId || otherUser) return;
+    apiFetch(`/api/users/${otherId}/`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((d) => d && setOtherUser({ tag: d.tag, avatar: d.avatar }))
+      .catch(() => {});
+  }, [otherId, otherUser]);
 
   const adapter = React.useMemo(
     () => ({
@@ -152,6 +161,16 @@ function ChatApp() {
         </div>
       </div>
       <ProfileDialog open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <Snackbar
+        open={!!newMsg}
+        autoHideDuration={4000}
+        onClose={() => setNewMsg(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity="info" onClose={() => setNewMsg(null)} sx={{ width: '100%' }}>
+          <b>{newMsg?.from}</b>: {newMsg?.preview}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }

@@ -183,3 +183,24 @@ def delete_conversation_with(request, other_user_id):
         return Response(status=204)
     convo.delete()
     return Response(status=204)
+
+#popup + sidebar auto add
+@api_view(['GET'])
+def unread_summary(request):
+    data = []
+    for convo in Conversation.objects.filter(participants=request.user):
+        latest = convo.messages.filter(is_read=False).exclude(sender=request.user).order_by('-timestamp').first()
+        if not latest:
+            continue
+        other = convo.participants.exclude(id=request.user.id).first()
+        profile = getattr(other, 'profile', None)
+        data.append({
+            'conversation_id': convo.id,
+            'latest_message_id': latest.id,
+            'preview': (latest.text or '')[:60] or '📷 Image',
+            'user_id': other.id,
+            'tag': other.username,
+            'display_name': (profile.display_name if profile else '') or other.username,
+            'avatar': request.build_absolute_uri(profile.avatar.url) if profile and profile.avatar else None,
+        })
+    return Response(data)

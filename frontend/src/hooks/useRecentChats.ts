@@ -25,8 +25,9 @@ function save(meId: number, contacts: RecentContact[]) {
   }
 }
 
-export function useRecentChats(meId: number) {
+export function useRecentChats(meId: number, activeOtherId: number | null) {
   const [recentChats, setRecentChats] = React.useState<RecentContact[]>([]);
+  const [alert, setAlert] = React.useState<{ from: string; preview: string } | null>(null);
 
   React.useEffect(() => {
     const cached = load(meId);
@@ -63,11 +64,23 @@ export function useRecentChats(meId: number) {
     };
   }, [meId]);
 
-const addOrBump = React.useCallback(
+  const addOrBump = React.useCallback(
     (contact: RecentContact) => {
       setRecentChats((prev) => {
         const withoutDupe = prev.filter((c) => c.user_id !== contact.user_id);
         const updated = [contact, ...withoutDupe].slice(0, 20);
+        save(meId, updated);
+        return updated;
+      });
+    },
+    [meId],
+  );
+
+  const addIfMissing = React.useCallback(
+    (contact: RecentContact) => {
+      setRecentChats((prev) => {
+        if (prev.some((c) => c.user_id === contact.user_id)) return prev;
+        const updated = [contact, ...prev].slice(0, 20);
         save(meId, updated);
         return updated;
       });
@@ -86,5 +99,46 @@ const addOrBump = React.useCallback(
     [meId],
   );
 
-  return { recentChats, addOrBump, remove };
+  // poll unread -> pop a snackbar for anything new, and pull unknown senders into the sidebar
+  const seen = React.useRef<Map<number, number> | null>(null);
+  const activeRef = React.useRef(activeOtherId);
+  activeRef.current = activeOtherId;
+
+  React.useEffect(() => {
+    const tick = async () => {
+      let items: any[];
+      try {
+        const res = await apiFetch('/api/conversations/unread-summary/');
+        if (!res.ok) return;
+        items = await res.json();
+      } catch {
+        return;
+      }
+
+      const first = seen.current === null;
+      const next = new Map<number, number>();
+
+      for (const it of items) {
+        next.set(it.user_id, it.latest_message_id);
+        addIfMissing({
+          user_id: it.user_id,
+          tag: it.tag,
+          display_name: it.display_name,
+          avatar: it.avatar,
+        });
+        if (first) continue;
+        const prev = seen.current!.get(it.user_id);
+        if (prev !== it.latest_message_id && it.user_id !== activeRef.current) {
+          setAlert({ from: it.display_name || it.tag, preview: it.preview });
+        }
+      }
+      seen.current = next;
+    };
+
+    tick();
+    const id = setInterval(tick, 2000);
+    return () => clearInterval(id);
+  }, [addIfMissing]);
+
+  return { recentChats, addOrBump, remove, alert, setAlert };
 }

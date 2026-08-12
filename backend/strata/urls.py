@@ -10,7 +10,7 @@ urlpatterns = [
     # profile
     path('profile/me/', views.MyProfileView.as_view(), name='my-profile'),
 
-    # exist
+    # app
     path('', views.home),
     path('users/', views.user_list),
     path('users/<int:pk>/', views.UserDetailView.as_view(), name='user-detail'),
@@ -21,5 +21,6 @@ urlpatterns = [
     path('search-users/', views.search_users, name='search-users'),
     path('conversations/<int:conversation_id>/mark-read/', views.mark_read),
     path('conversations/unread-counts/', views.unread_counts),
+    path('conversations/unread-summary/', views.unread_summary),
 ]
 
