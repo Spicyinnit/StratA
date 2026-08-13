@@ -184,12 +184,13 @@ def delete_conversation_with(request, other_user_id):
     convo.delete()
     return Response(status=204)
 
-#popup + sidebar auto add
+#unread thing + sidebar auto add
 @api_view(['GET'])
 def unread_summary(request):
     data = []
     for convo in Conversation.objects.filter(participants=request.user):
-        latest = convo.messages.filter(is_read=False).exclude(sender=request.user).order_by('-timestamp').first()
+        unread = convo.messages.filter(is_read=False).exclude(sender=request.user)
+        latest = unread.order_by('-timestamp').first()
         if not latest:
             continue
         other = convo.participants.exclude(id=request.user.id).first()
@@ -197,6 +198,7 @@ def unread_summary(request):
         data.append({
             'conversation_id': convo.id,
             'latest_message_id': latest.id,
+            'unread_count': unread.count(),
             'preview': (latest.text or '')[:60] or '📷 Image',
             'user_id': other.id,
             'tag': other.username,
@@ -204,3 +206,15 @@ def unread_summary(request):
             'avatar': request.build_absolute_uri(profile.avatar.url) if profile and profile.avatar else None,
         })
     return Response(data)
+
+
+@api_view(['POST'])
+def mark_read(request, other_user_id):
+    convo = (Conversation.objects
+             .filter(participants=request.user)
+             .filter(participants__id=other_user_id)
+             .first())
+    if not convo:
+        return Response(status=204)
+    convo.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+    return Response(status=204)

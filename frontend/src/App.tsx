@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ChatBox } from '@mui/x-chat';
 import type { ChatConversation, ChatMessage } from '@mui/x-chat/headless';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { Avatar, IconButton, Snackbar, Alert } from '@mui/material';
+import { Avatar, IconButton } from '@mui/material';
 import { apiFetch, toChatMessages, deleteConversationWith } from './api';
 import { useRecentChats, type RecentContact } from './hooks/useRecentChats';
 import { SearchBar } from './components/SearchBar';
@@ -18,6 +18,7 @@ const retroTheme = createTheme({
     primary: { main: '#FF6D1F' },
     text: { primary: '#222222', secondary: '#8a7854' },
   },
+  typography: { fontFamily: '"Inter", system-ui, sans-serif' },
   shape: { borderRadius: 10 },
   components: {
     MuiPaper: { styleOverrides: { root: { border: '1px solid #d8cba8' } } },
@@ -35,13 +36,13 @@ function ChatApp() {
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = React.useState<number | null>(null);
-  const { recentChats, addOrBump, remove, alert: newMsg, setAlert: setNewMsg } = useRecentChats(meId, otherId);
-
+  const { recentChats, addOrBump, remove, unreadCounts, markRead } = useRecentChats(meId, otherId);
   const conversations: ChatConversation[] = [
     { id: 'main', title: otherUser ? `Chat with ${otherUser.tag}` : 'No chat selected', readState: 'read' },
   ];
 
   const openChat = (contact: RecentContact) => {
+    markRead(contact.user_id);
     setOtherId(contact.user_id);
     setOtherUser({ tag: contact.tag, avatar: contact.avatar });
     addOrBump(contact);
@@ -91,6 +92,7 @@ function ChatApp() {
     const interval = setInterval(loadMessages, 2000);
     return () => clearInterval(interval);
   }, [loadMessages, otherId]);
+
   React.useEffect(() => {
     if (!otherId || otherUser) return;
     apiFetch(`/api/users/${otherId}/`)
@@ -145,7 +147,7 @@ function ChatApp() {
         </div>
 
         <SearchBar meId={meId} onSelect={(u) => openChat({ user_id: u.user_id, tag: u.tag, avatar: u.avatar })} />
-        <RecentChatsList chats={recentChats} activeId={otherId ?? -1} onSelect={openChat} onDelete={handleDelete} />
+        <RecentChatsList chats={recentChats} activeId={otherId ?? -1} onSelect={openChat} onDelete={handleDelete} unreadCounts={unreadCounts} />
       </div>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', padding: 24 }}>
@@ -155,22 +157,12 @@ function ChatApp() {
               conversations={conversations}
               activeConversationId="main"
               messages={messages}
-              features={{ conversationList: false }}
+              features={{ conversationList: false, dateDivider: true }}
               onMessagesChange={setMessages}
             />
         </div>
       </div>
       <ProfileDialog open={profileOpen} onClose={() => setProfileOpen(false)} />
-      <Snackbar
-        open={!!newMsg}
-        autoHideDuration={4000}
-        onClose={() => setNewMsg(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert severity="info" onClose={() => setNewMsg(null)} sx={{ width: '100%' }}>
-          <b>{newMsg?.from}</b>: {newMsg?.preview}
-        </Alert>
-      </Snackbar>
     </div>
   );
 }

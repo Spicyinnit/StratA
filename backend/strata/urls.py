@@ -19,8 +19,8 @@ urlpatterns = [
     path('conversations/<int:conversation_id>/messages/', views.list_messages),
     path('conversations/<int:conversation_id>/send/', views.send_message),
     path('search-users/', views.search_users, name='search-users'),
-    path('conversations/<int:conversation_id>/mark-read/', views.mark_read),
-    path('conversations/unread-counts/', views.unread_counts),
+    path('conversations/<int:conversation_id>/mark-read/', views.mark_read), #?????
+    path('conversations/with/<int:other_user_id>/read/', views.mark_read), #??????
     path('conversations/unread-summary/', views.unread_summary),
 ]
 

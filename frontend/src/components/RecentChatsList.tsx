@@ -5,9 +5,10 @@ type Props = {
   activeId: number;
   onSelect: (c: RecentContact) => void;
   onDelete: (c: RecentContact) => void;
+  unreadCounts: Record<number, number>;
 };
 
-export function RecentChatsList({ chats, activeId, onSelect, onDelete }: Props) {
+export function RecentChatsList({ chats, activeId, onSelect, onDelete, unreadCounts }: Props) {
   if (chats.length === 0) {
     return (
       <div style={{ color: '#8a7854', fontSize: 13, padding: '8px 4px' }}>
@@ -61,13 +62,33 @@ export function RecentChatsList({ chats, activeId, onSelect, onDelete }: Props) 
             )}
           </div>
           <span style={{ color: '#FAF3E1', fontSize: 15 }}>{c.tag}</span>
+          {unreadCounts[c.user_id] > 0 && (
+            <span
+              style={{
+                marginLeft: 'auto',
+                background: '#FF6D1F',
+                color: '#222222',
+                fontSize: 12,
+                fontWeight: 700,
+                minWidth: 20,
+                height: 20,
+                borderRadius: 10,
+                padding: '0 6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {unreadCounts[c.user_id] > 99 ? '99+' : unreadCounts[c.user_id]}
+            </span>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onDelete(c);
             }}
             style={{
-              marginLeft: 'auto',
+              marginLeft: unreadCounts[c.user_id] > 0 ? 6 : 'auto',
               background: 'none',
               border: 'none',
               color: '#8a7854',

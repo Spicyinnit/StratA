@@ -1,8 +1,10 @@
 export const API_BASE = `http://${window.location.hostname}:8000`;
 export const TAG_REGEX = /^[a-zA-Z0-9_.]{3,30}$/;
 
+
 export function guessMediaType(url: string) {
-  const ext = url.split('.').pop()?.toLowerCase();
+  const clean = url.split('?')[0].split('#')[0];
+  const ext = clean.split('.').pop()?.toLowerCase();
   if (ext === 'png') return 'image/png';
   if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
   if (ext === 'gif') return 'image/gif';
@@ -14,6 +16,7 @@ export function toChatMessages(apiMessages: any[], meId: number) {
   return apiMessages.map((m) => ({
     id: String(m.id),
     conversationId: 'main',
+    createdAt: m.timestamp,
     role: m.sender === meId ? 'user' as const : 'assistant' as const,
     author: {
       id: String(m.sender),
@@ -57,4 +60,8 @@ export async function deleteConversationWith(conversationId: number) {
     method: "DELETE",
   });
   if (!res.ok) throw new Error("Delete failed");
+}
+
+export function markConversationRead(otherUserId: number) {
+  return apiFetch(`/api/conversations/with/${otherUserId}/read/`, { method: 'POST' });
 }

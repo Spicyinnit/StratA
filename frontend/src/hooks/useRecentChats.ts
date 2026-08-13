@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, markConversationRead } from '../api';
 
 export type RecentContact = {
   user_id: number;
@@ -27,7 +27,7 @@ function save(meId: number, contacts: RecentContact[]) {
 
 export function useRecentChats(meId: number, activeOtherId: number | null) {
   const [recentChats, setRecentChats] = React.useState<RecentContact[]>([]);
-  const [alert, setAlert] = React.useState<{ from: string; preview: string } | null>(null);
+  const [unreadCounts, setUnreadCounts] = React.useState<Record<number, number>>({});
 
   React.useEffect(() => {
     const cached = load(meId);
@@ -95,15 +95,34 @@ export function useRecentChats(meId: number, activeOtherId: number | null) {
         save(meId, updated);
         return updated;
       });
+      setUnreadCounts((prev) => {
+        if (!prev[userId]) return prev;
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
     },
     [meId],
   );
 
-  // poll unread -> pop a snackbar for anything new, and pull unknown senders into the sidebar
-  const seen = React.useRef<Map<number, number> | null>(null);
   const activeRef = React.useRef(activeOtherId);
   activeRef.current = activeOtherId;
 
+  const markRead = React.useCallback(async (userId: number) => {
+    setUnreadCounts((prev) => {
+      if (!prev[userId]) return prev;
+      const next = { ...prev };
+      delete next[userId];
+      return next;
+    });
+    try {
+      await markConversationRead(userId);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // poll unread- keep contact badge counts, pull unknown senders into the sidebar
   React.useEffect(() => {
     const tick = async () => {
       let items: any[];
@@ -115,24 +134,23 @@ export function useRecentChats(meId: number, activeOtherId: number | null) {
         return;
       }
 
-      const first = seen.current === null;
-      const next = new Map<number, number>();
+      const counts: Record<number, number> = {};
 
       for (const it of items) {
-        next.set(it.user_id, it.latest_message_id);
         addIfMissing({
           user_id: it.user_id,
           tag: it.tag,
           display_name: it.display_name,
           avatar: it.avatar,
         });
-        if (first) continue;
-        const prev = seen.current!.get(it.user_id);
-        if (prev !== it.latest_message_id && it.user_id !== activeRef.current) {
-          setAlert({ from: it.display_name || it.tag, preview: it.preview });
+        if (it.user_id === activeRef.current) {
+          markConversationRead(it.user_id).catch(() => {});
+          continue;
         }
+        counts[it.user_id] = it.unread_count;
       }
-      seen.current = next;
+
+      setUnreadCounts(counts);
     };
 
     tick();
@@ -140,5 +158,5 @@ export function useRecentChats(meId: number, activeOtherId: number | null) {
     return () => clearInterval(id);
   }, [addIfMissing]);
 
-  return { recentChats, addOrBump, remove, alert, setAlert };
+  return { recentChats, addOrBump, addIfMissing, remove, unreadCounts, markRead };
 }
