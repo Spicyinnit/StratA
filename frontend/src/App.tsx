@@ -1,5 +1,6 @@
 import * as React from 'react';    
 import { ChatBox } from '@mui/x-chat';
+import { ChatProvider } from '@mui/x-chat/headless';
 import type { ChatConversation, ChatMessage } from '@mui/x-chat/headless';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Avatar, IconButton } from '@mui/material';
@@ -8,8 +9,10 @@ import { useRecentChats, type RecentContact } from './hooks/useRecentChats';
 import { SearchBar } from './components/SearchBar';
 import { RecentChatsList } from './components/RecentChatsList';
 import ProfileDialog from './components/ProfileDialog';
+import BigImage from './components/BigImage';
 import { useAuth } from './AuthContext';
 import LoginPage from './LoginPage';
+
 
 const retroTheme = createTheme({
   palette: {
@@ -152,14 +155,32 @@ function ChatApp() {
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', padding: 24 }}>
         <div style={{ flex: 1, background: '#FAF3E1', borderRadius: 18, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
-            <ChatBox
-              adapter={adapter}
-              conversations={conversations}
-              activeConversationId="main"
-              messages={messages}
-              features={{ conversationList: false, dateDivider: true }}
-              onMessagesChange={setMessages}
-            />
+         <ChatProvider adapter={adapter}>
+  <ChatBox
+    adapter={adapter}
+    conversations={conversations}
+    activeConversationId="main"
+    messages={messages}
+    features={{ conversationList: false, dateDivider: true }}
+    onMessagesChange={setMessages}
+    slotProps={{
+      messageContent: {
+        partProps: {
+          file: {
+            slots: {
+              root: (props: any) => {
+                const msg = messages.find((m: any) => String(m.id) === String(props.ownerState?.messageId));
+                const filePart: any = msg?.parts?.find((p: any) => p.type === 'file');
+                if (!filePart?.url) return null;
+                return <BigImage part={filePart} />;
+              },
+            },
+          },
+        },
+      },
+    }}
+  />
+</ChatProvider>
         </div>
       </div>
       <ProfileDialog open={profileOpen} onClose={() => setProfileOpen(false)} />
