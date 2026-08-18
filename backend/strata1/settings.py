@@ -11,6 +11,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
+    "daphne",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -52,6 +53,11 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'strata1.wsgi.application'
+ASGI_APPLICATION = "strata1.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
+}
 
 DATABASES = {
     'default': {

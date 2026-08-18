@@ -8,9 +8,18 @@ https://docs.djangoproject.com/en/6.0/howto/deployment/asgi/
 """
 
 import os
-
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'strata1.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "strata1.settings")
+django_asgi_app = get_asgi_application()
 
-application = get_asgi_application()
+from channels.routing import ProtocolTypeRouter, URLRouter
+from strata.middleware import TokenAuthMiddleware
+import strata.routing
+
+application = ProtocolTypeRouter({
+    "http": django_asgi_app,
+    "websocket": TokenAuthMiddleware(
+        URLRouter(strata.routing.websocket_urlpatterns)
+    ),
+})

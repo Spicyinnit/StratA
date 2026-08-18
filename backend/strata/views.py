@@ -8,6 +8,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth.models import User
 from rest_framework.generics import RetrieveAPIView
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 
 from .models import Conversation, Message, UserProfile
@@ -133,12 +135,21 @@ def send_message(request, conversation_id):
 
     msg = Message.objects.create(
         conversation=convo,
-        sender=request.user,                 # taken from the token, not the request body
+        sender=request.user,
         text=request.data.get('text', ''),
         image=request.FILES.get('image'),
     )
-    return Response(MessageSerializer(msg, context={'request': request}).data, status=201)
 
+    # tell both sides over the websocket so images arrive live too
+    other = convo.participants.exclude(id=request.user.id).first()
+    if other:
+        a, b = sorted([request.user.id, other.id])
+        async_to_sync(get_channel_layer().group_send)(
+            f"chat_{a}_{b}",
+            {"type": "chat.message", "message": {}},
+        )
+
+    return Response(MessageSerializer(msg, context={'request': request}).data, status=201)
 
 @api_view(['GET'])
 def list_messages(request, conversation_id):

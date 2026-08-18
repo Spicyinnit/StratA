@@ -6,6 +6,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Avatar, IconButton } from '@mui/material';
 import { apiFetch, toChatMessages, deleteConversationWith } from './api';
 import { useRecentChats, type RecentContact } from './hooks/useRecentChats';
+import { useChatSocket } from './hooks/useChatSocket';          // ← NEW
 import { SearchBar } from './components/SearchBar';
 import { RecentChatsList } from './components/RecentChatsList';
 import ProfileDialog from './components/ProfileDialog';
@@ -85,16 +86,17 @@ function ChatApp() {
       .catch((err) => console.error(err));
   }, [meId, otherId]);
 
-  React.useEffect(() => {
+  const { send } = useChatSocket(otherId, loadMessages);        // ← NEW
+
+    React.useEffect(() => {
     if (!otherId) {
       setMessages([]);
       setConversationId(null);
       return;
     }
     loadMessages();
-    const interval = setInterval(loadMessages, 2000);
-    return () => clearInterval(interval);
   }, [loadMessages, otherId]);
+
 
   React.useEffect(() => {
     if (!otherId || otherUser) return;
@@ -104,7 +106,7 @@ function ChatApp() {
       .catch(() => {});
   }, [otherId, otherUser]);
 
-  const adapter = React.useMemo(
+  const adapter = React.useMemo(                                 // ← CHANGED
     () => ({
       async sendMessage(input: any) {
         if (!conversationId) {
@@ -117,21 +119,27 @@ function ChatApp() {
           return new ReadableStream({ start(c) { c.close(); } });
         }
 
-        const formData = new FormData();
-        formData.append('text', text);            // sender comes from the token now
-        if (attachments[0]) formData.append('image', attachments[0].file);
+        // text-only -> WebSocket. image, or socket down -> REST fallback
+        const sentOverWs = attachments.length === 0 && send(text);
 
-        const res = await apiFetch(`/api/conversations/${conversationId}/send/`, {
-          method: 'POST',
-          body: formData,
-        });
-        if (!res.ok) console.error('send failed', res.status);
+        if (!sentOverWs) {
+          const formData = new FormData();
+          formData.append('text', text);
+          if (attachments[0]) formData.append('image', attachments[0].file);
 
-        loadMessages();
+          const res = await apiFetch(`/api/conversations/${conversationId}/send/`, {
+            method: 'POST',
+            body: formData,
+          });
+          if (!res.ok) console.error('send failed', res.status);
+
+          loadMessages();
+        }
+
         return new ReadableStream({ start(controller) { controller.close(); } });
       },
     }),
-    [conversationId, loadMessages],
+    [conversationId, loadMessages, send],                        //sent
   );
 
   return (
