@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // load my profile whenever I'm logged in
+  // load my profile whenever Im logged in
   useEffect(() => {
     if (user) refreshProfile();
     else setProfile(null);

@@ -18,7 +18,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         a, b = sorted([self.me.id, self.other_id])
         self.group_name = f"chat_{a}_{b}"
-        print(">>> me:", self.me.id, "other:", self.other_id, "group:", self.group_name)
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
@@ -28,7 +27,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive(self, text_data=None, bytes_data=None):
-        print(">>> RECEIVE:", text_data)
         data = json.loads(text_data)
         if data.get("type") != "message.send":
             return
@@ -43,7 +41,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def chat_message(self, event):
-        print(">>> BROADCAST to", self.me.id)
         await self.send(text_data=json.dumps({
             "type": "message.new",
             "message": event["message"],
@@ -71,7 +68,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "id": m.id,
             "text": m.text,
             "sender": self.me.id,
-            "sender_name": self.me.username,
+            "sender_name": self.me.profile.display_name or self.me.username,
             "timestamp": m.timestamp.isoformat(),
             "image": None,
         }
