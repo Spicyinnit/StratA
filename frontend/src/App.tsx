@@ -2,35 +2,23 @@ import * as React from 'react';
 import { ChatBox } from '@mui/x-chat';
 import { ChatProvider } from '@mui/x-chat/headless';
 import type { ChatConversation, ChatMessage } from '@mui/x-chat/headless';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Avatar, IconButton } from '@mui/material';
 import { apiFetch, toChatMessages, deleteConversationWith } from './api';
 import { useRecentChats, type RecentContact } from './hooks/useRecentChats';
-import { useChatSocket } from './hooks/useChatSocket';          // ← NEW
+import { useChatSocket } from './hooks/useChatSocket';
 import { SearchBar } from './components/SearchBar';
 import { RecentChatsList } from './components/RecentChatsList';
 import ProfileDialog from './components/ProfileDialog';
 import BigImage from './components/BigImage';
 import { useAuth } from './AuthContext';
 import LoginPage from './LoginPage';
-
-
-const retroTheme = createTheme({
-  palette: {
-    mode: 'light',
-    background: { default: '#FAF3E1', paper: '#FAF3E1' },
-    primary: { main: '#FF6D1F' },
-    text: { primary: '#222222', secondary: '#8a7854' },
-  },
-  typography: { fontFamily: '"Inter", system-ui, sans-serif' },
-  shape: { borderRadius: 10 },
-  components: {
-    MuiPaper: { styleOverrides: { root: { border: '1px solid #d8cba8' } } },
-  },
-});
+import { useAppTheme } from './Themes';
+import { WALLPAPERS } from './wallpapers';
 
 function ChatApp() {
   const { user, profile } = useAuth();
+  const { wallpaper, mode } = useAppTheme();
+  const wp = WALLPAPERS[wallpaper][mode];
   const meId = user!.id;
   const [otherId, setOtherId] = React.useState<number | null>(
     () => Number(localStorage.getItem(`activeChat_${user!.id}`)) || null,
@@ -71,7 +59,6 @@ function ChatApp() {
     }
   };
 
-
   const loadMessages = React.useCallback(() => {
     if (!otherId) return;
     apiFetch(`/api/conversations/${meId}/${otherId}/`)
@@ -86,9 +73,9 @@ function ChatApp() {
       .catch((err) => console.error(err));
   }, [meId, otherId]);
 
-  const { send } = useChatSocket(otherId, loadMessages);        // ← NEW
+  const { send } = useChatSocket(otherId, loadMessages);
 
-    React.useEffect(() => {
+  React.useEffect(() => {
     if (!otherId) {
       setMessages([]);
       setConversationId(null);
@@ -96,7 +83,6 @@ function ChatApp() {
     }
     loadMessages();
   }, [loadMessages, otherId]);
-
 
   React.useEffect(() => {
     if (!otherId || otherUser) return;
@@ -106,7 +92,7 @@ function ChatApp() {
       .catch(() => {});
   }, [otherId, otherUser]);
 
-  const adapter = React.useMemo(                                 // ← CHANGED
+  const adapter = React.useMemo(
     () => ({
       async sendMessage(input: any) {
         if (!conversationId) {
@@ -119,7 +105,6 @@ function ChatApp() {
           return new ReadableStream({ start(c) { c.close(); } });
         }
 
-        // text-only -> WebSocket. image, or socket down -> REST fallback
         const sentOverWs = attachments.length === 0 && send(text);
 
         if (!sentOverWs) {
@@ -139,13 +124,12 @@ function ChatApp() {
         return new ReadableStream({ start(controller) { controller.close(); } });
       },
     }),
-    [conversationId, loadMessages, send],                        //sent
+    [conversationId, loadMessages, send],
   );
 
   return (
-    <div style={{ height: '100vh', width: '100vw', display: 'flex', background: '#222222', fontFamily: '"Inter", system-ui, sans-serif' }}>
+    <div style={{ height: '100vh', width: '100vw', display: 'flex', background: mode === 'light' ? '#222222' : '#181818', fontFamily: '"Inter", system-ui, sans-serif' }}>
       <div style={{ width: 280, flexShrink: 0, background: '#2a2a2a', borderRight: '1px solid #3a3a3a', display: 'flex', flexDirection: 'column', padding: '20px 16px' }}>
-        {/* avatar button -> profile + settings popup */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <IconButton onClick={() => setProfileOpen(true)} sx={{ p: 0.5 }}>
             <Avatar src={profile?.avatar ?? undefined} sx={{ width: 40, height: 40 }}>
@@ -162,33 +146,56 @@ function ChatApp() {
       </div>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', padding: 24 }}>
-        <div style={{ flex: 1, background: '#FAF3E1', borderRadius: 18, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
-         <ChatProvider adapter={adapter}>
-  <ChatBox
-    adapter={adapter}
-    conversations={conversations}
-    activeConversationId="main"
-    messages={messages}
-    features={{ conversationList: false, dateDivider: true }}
-    onMessagesChange={setMessages}
-    slotProps={{
-      messageContent: {
-        partProps: {
-          file: {
-            slots: {
-              root: (props: any) => {
-                const msg = messages.find((m: any) => String(m.id) === String(props.ownerState?.messageId));
-                const filePart: any = msg?.parts?.find((p: any) => p.type === 'file');
-                if (!filePart?.url) return null;
-                return <BigImage part={filePart} />;
-              },
-            },
-          },
-        },
-      },
-    }}
-  />
-</ChatProvider>
+        <div style={{
+          flex: 1,
+          position: 'relative',
+          background: mode === 'light' ? '#FAF3E1' : '#2C2C2C',
+          borderRadius: 18,
+          overflow: 'hidden',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+        }}>
+          {wp && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url(${wp})`,
+              backgroundRepeat: 'repeat',
+              backgroundSize: '500px',
+              opacity: mode === 'dark' ? 0.5 : 0.2,
+              pointerEvents: 'none',
+            }} />
+          )}
+
+          <div style={{ position: 'relative', height: '100%', zIndex: 1 }}>
+            <ChatProvider adapter={adapter}>
+              <ChatBox
+                sx={{ backgroundColor: 'transparent', height: '100%' }}
+                adapter={adapter}
+                conversations={conversations}
+                activeConversationId="main"
+                messages={messages}
+                features={{ conversationList: false, dateDivider: true }}
+                onMessagesChange={setMessages}
+                slotProps={{
+                  messageList: { sx: { backgroundColor: 'transparent' } },
+                  messageContent: {
+                    partProps: {
+                      file: {
+                        slots: {
+                          root: (props: any) => {
+                            const msg = messages.find((m: any) => String(m.id) === String(props.ownerState?.messageId));
+                            const filePart: any = msg?.parts?.find((p: any) => p.type === 'file');
+                            if (!filePart?.url) return null;
+                            return <BigImage part={filePart} />;
+                          },
+                        },
+                      },
+                    },
+                  },
+                }}
+              />
+            </ChatProvider>
+          </div>
         </div>
       </div>
       <ProfileDialog open={profileOpen} onClose={() => setProfileOpen(false)} />
@@ -198,9 +205,5 @@ function ChatApp() {
 
 export default function App() {
   const { user } = useAuth();
-  return (
-    <ThemeProvider theme={retroTheme}>
-      {user ? <ChatApp /> : <LoginPage />}
-    </ThemeProvider>
-  );
+  return user ? <ChatApp /> : <LoginPage />;
 }

@@ -1,3 +1,5 @@
+import { useAppTheme } from "../Themes";
+import { WALLPAPERS, type WallpaperKey } from "../wallpapers";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -9,13 +11,15 @@ import {
   Dialog,
   DialogContent,
   Divider,
+  FormControlLabel,
   IconButton,
+  Stack,
+  Switch,
   TextField,
   Typography,
 } from "@mui/material";
 import { API_BASE, apiFetch } from "../api";
 import { useAuth } from "../AuthContext";
-
 type Profile = {
   display_name: string;
   tag: string;
@@ -33,6 +37,7 @@ export default function ProfileDialog({
   onClose: () => void;
 }) {
   const { user, logout, refreshProfile } = useAuth();
+  const { mode, setMode, wallpaper, setWallpaper } = useAppTheme();
   const [profile, setP] = useState<Profile>(EMPTY);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -188,7 +193,48 @@ export default function ProfileDialog({
             </Button>
 
             <Divider />
+<Typography variant="subtitle2">Appearance</Typography>
 
+<FormControlLabel
+  control={
+    <Switch
+      checked={mode === "dark"}
+      onChange={(e) => setMode(e.target.checked ? "dark" : "light")}
+    />
+  }
+  label="Dark mode"
+/>
+
+<Box>
+  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+    Chat wallpaper
+  </Typography>
+  <Stack direction="row" spacing={1}>
+    {(Object.keys(WALLPAPERS) as WallpaperKey[]).map((key) => {
+      const src = WALLPAPERS[key][mode];
+      return (
+        <Box
+          key={key}
+          onClick={() => setWallpaper(key)}
+          title={WALLPAPERS[key].label}
+          sx={{
+            width: 56,
+            height: 56,
+            borderRadius: 1,
+            cursor: "pointer",
+            bgcolor: "background.default",
+            border: wallpaper === key ? "2px solid" : "1px solid",
+            borderColor: wallpaper === key ? "primary.main" : "divider",
+            backgroundImage: src ? `url(${src})` : "none",
+            backgroundSize: "90px",
+          }}
+        />
+      );
+    })}
+  </Stack>
+</Box>
+
+<Divider />
             <Button color="error" onClick={logout}>
               Log out
             </Button>
@@ -198,3 +244,4 @@ export default function ProfileDialog({
     </Dialog>
   );
 }
+
