@@ -10,6 +10,8 @@ const Ctx = createContext<{
   setMode: (m: Mode) => void;
   wallpaper: WallpaperKey;
   setWallpaper: (w: WallpaperKey) => void;
+  wallpaperPos: string;
+  randomizeWallpaper: () => void;
 }>(null!);
 
 export const useAppTheme = () => useContext(Ctx);
@@ -21,9 +23,18 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
   const [wallpaper, setWallpaperState] = useState<WallpaperKey>(
     () => (localStorage.getItem('wallpaper') as WallpaperKey) || 'none'
   );
+  const [wallpaperPos, setWallpaperPos] = useState<string>(
+    () => localStorage.getItem('wallpaperPos') || '0px 0px'
+  );
 
   const setMode = (m: Mode) => { localStorage.setItem('mode', m); setModeState(m); };
   const setWallpaper = (w: WallpaperKey) => { localStorage.setItem('wallpaper', w); setWallpaperState(w); };
+
+  const randomizeWallpaper = () => {
+    const p = `${Math.floor(Math.random() * 600)}px ${Math.floor(Math.random() * 600)}px`;
+    localStorage.setItem('wallpaperPos', p);
+    setWallpaperPos(p);
+  };
 
   const theme = useMemo(() => createTheme({
     palette: {
@@ -51,7 +62,7 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
   }), [mode]);
 
   return (
-    <Ctx.Provider value={{ mode, setMode, wallpaper, setWallpaper }}>
+    <Ctx.Provider value={{ mode, setMode, wallpaper, setWallpaper, wallpaperPos, randomizeWallpaper }}>
       <ThemeProvider theme={theme}>{children}</ThemeProvider>
     </Ctx.Provider>
   );

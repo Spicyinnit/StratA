@@ -5,10 +5,11 @@ type Props = {
   activeId: number;
   onSelect: (c: RecentContact) => void;
   onDelete: (c: RecentContact) => void;
+  onAvatarClick: (c: RecentContact) => void;
   unreadCounts: Record<number, number>;
 };
 
-export function RecentChatsList({ chats, activeId, onSelect, onDelete, unreadCounts }: Props) {
+export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarClick, unreadCounts }: Props) {
   if (chats.length === 0) {
     return (
       <div style={{ color: '#8a7854', fontSize: 13, padding: '8px 4px' }}>
@@ -40,6 +41,11 @@ export function RecentChatsList({ chats, activeId, onSelect, onDelete, unreadCou
           }}
         >
           <div
+            onClick={(e) => {
+              e.stopPropagation();
+              onAvatarClick(c);
+            }}
+            title="View profile"
             style={{
               width: 32,
               height: 32,
@@ -53,6 +59,7 @@ export function RecentChatsList({ chats, activeId, onSelect, onDelete, unreadCou
               fontWeight: 600,
               flexShrink: 0,
               overflow: 'hidden',
+              cursor: 'pointer',
             }}
           >
             {c.avatar ? (

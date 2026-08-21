@@ -14,10 +14,11 @@ import { useAuth } from './AuthContext';
 import LoginPage from './LoginPage';
 import { useAppTheme } from './Themes';
 import { WALLPAPERS } from './wallpapers';
+import OtherUserProfile from './components/OtherUserProfile';
 
 function ChatApp() {
   const { user, profile } = useAuth();
-  const { wallpaper, mode } = useAppTheme();
+  const { wallpaper, mode, wallpaperPos } = useAppTheme();
   const wp = WALLPAPERS[wallpaper][mode];
   const meId = user!.id;
   const [otherId, setOtherId] = React.useState<number | null>(
@@ -26,6 +27,7 @@ function ChatApp() {
   
   const [otherUser, setOtherUser] = React.useState<{ tag: string; avatar: string | null } | null>(null);
   const [profileOpen, setProfileOpen] = React.useState(false);
+  const [viewUserId, setViewUserId] = React.useState<number | null>(null);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = React.useState<number | null>(null);
   const { recentChats, addOrBump, remove, unreadCounts, markRead } = useRecentChats(meId, otherId);
@@ -141,8 +143,8 @@ function ChatApp() {
           </span>
         </div>
 
-        <SearchBar meId={meId} onSelect={(u) => openChat({ user_id: u.user_id, tag: u.tag, avatar: u.avatar })} />
-        <RecentChatsList chats={recentChats} activeId={otherId ?? -1} onSelect={openChat} onDelete={handleDelete} unreadCounts={unreadCounts} />
+        <SearchBar meId={meId} onSelect={(u) => setViewUserId(u.user_id)} />
+        <RecentChatsList chats={recentChats} activeId={otherId ?? -1} onSelect={openChat} onDelete={handleDelete} onAvatarClick={(c) => setViewUserId(c.user_id)} unreadCounts={unreadCounts} />
       </div>
 
       <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', padding: 24 }}>
@@ -160,9 +162,11 @@ function ChatApp() {
               inset: 0,
               backgroundImage: `url(${wp})`,
               backgroundRepeat: 'repeat',
-              backgroundSize: '500px',
-              opacity: mode === 'dark' ? 0.5 : 0.2,
+              backgroundSize: '2500px',
+              backgroundPosition: wallpaperPos,
+              opacity: mode === 'dark' ? 0.1 : 0.2,
               pointerEvents: 'none',
+              transition: 'background-position 0.35s ease',
             }} />
           )}
 
@@ -199,6 +203,14 @@ function ChatApp() {
         </div>
       </div>
       <ProfileDialog open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <OtherUserProfile
+        userId={viewUserId}
+        onClose={() => setViewUserId(null)}
+        onMessage={(u) => {
+          openChat(u);
+          setViewUserId(null);
+        }}
+      />
     </div>
   );
 }
