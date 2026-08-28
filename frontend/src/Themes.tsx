@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { createTheme, ThemeProvider } from '@mui/material';
 import type { WallpaperKey } from './wallpapers';
@@ -60,6 +60,17 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
       },
     },
   }), [mode]);
+//                                     favicon changer v (public folder)
+  useEffect(() => {
+    const href = mode === 'dark' ? '/favicon-dark.svg' : '/favicon.svg';
+    const old = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+    const next = document.createElement('link');
+    next.rel = 'icon';
+    next.type = 'image/svg+xml';
+    next.href = href;
+    old?.remove();
+    document.head.appendChild(next);
+  }, [mode]);
 
   return (
     <Ctx.Provider value={{ mode, setMode, wallpaper, setWallpaper, wallpaperPos, randomizeWallpaper }}>

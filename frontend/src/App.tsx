@@ -1,8 +1,8 @@
-import * as React from 'react';    
+import * as React from 'react';
 import { ChatBox } from '@mui/x-chat';
 import { ChatProvider } from '@mui/x-chat/headless';
 import type { ChatConversation, ChatMessage } from '@mui/x-chat/headless';
-import { Avatar, IconButton } from '@mui/material';
+import { Avatar, IconButton, Snackbar } from '@mui/material';
 import { apiFetch, toChatMessages, deleteConversationWith } from './api';
 import { useRecentChats, type RecentContact } from './hooks/useRecentChats';
 import { useChatSocket } from './hooks/useChatSocket';
@@ -15,6 +15,7 @@ import LoginPage from './LoginPage';
 import { useAppTheme } from './Themes';
 import { WALLPAPERS } from './wallpapers';
 import OtherUserProfile from './components/OtherUserProfile';
+import ConfirmDialog from './components/ConfirmDialog';
 
 function ChatApp() {
   const { user, profile } = useAuth();
@@ -24,12 +25,13 @@ function ChatApp() {
   const [otherId, setOtherId] = React.useState<number | null>(
     () => Number(localStorage.getItem(`activeChat_${user!.id}`)) || null,
   );
-  
   const [otherUser, setOtherUser] = React.useState<{ tag: string; avatar: string | null } | null>(null);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [viewUserId, setViewUserId] = React.useState<number | null>(null);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = React.useState<number | null>(null);
+  const [pending, setPending] = React.useState<RecentContact | null>(null);
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const { recentChats, addOrBump, remove, unreadCounts, markRead } = useRecentChats(meId, otherId);
   const conversations: ChatConversation[] = [
     { id: 'main', title: otherUser ? `Chat with ${otherUser.tag}` : 'No chat selected', readState: 'read' },
@@ -43,18 +45,21 @@ function ChatApp() {
     localStorage.setItem(`activeChat_${meId}`, String(contact.user_id));
   };
 
-  const handleDelete = async (contact: RecentContact) => {
-    const name = contact.display_name || contact.tag;
-    if (!confirm(`Delete your chat with ${name}? This erases all messages for both of you.`)) return;
+  const handleDelete = (contact: RecentContact) => setPending(contact);
+
+  const confirmDelete = async () => {
+    const c = pending;
+    if (!c) return;
+    setPending(null);
     try {
-      await deleteConversationWith(contact.user_id);
+      await deleteConversationWith(c.user_id);
     } catch (err) {
       console.error(err);
-      alert('Could not delete the chat.');
+      setErrorMsg('Something went wrong, sorry.');
       return;
     }
-    remove(contact.user_id);
-    if (otherId === contact.user_id) {
+    remove(c.user_id);
+    if (otherId === c.user_id) {
       setOtherId(null);
       setOtherUser(null);
       localStorage.removeItem(`activeChat_${meId}`);
@@ -202,6 +207,7 @@ function ChatApp() {
           </div>
         </div>
       </div>
+
       <ProfileDialog open={profileOpen} onClose={() => setProfileOpen(false)} />
       <OtherUserProfile
         userId={viewUserId}
@@ -210,6 +216,22 @@ function ChatApp() {
           openChat(u);
           setViewUserId(null);
         }}
+      />
+
+      <ConfirmDialog
+        open={!!pending}
+        title="Delete chat?"
+        message={`This erases all messages with ${pending?.display_name || pending?.tag} for both of you.`}
+        confirmLabel="Delete"
+        onCancel={() => setPending(null)}
+        onConfirm={confirmDelete}
+      />
+
+      <Snackbar
+        open={!!errorMsg}
+        autoHideDuration={4000}
+        onClose={() => setErrorMsg(null)}
+        message={errorMsg}
       />
     </div>
   );
