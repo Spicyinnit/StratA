@@ -1,7 +1,6 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from django.contrib.auth.models import User
 from .models import Conversation, Message
 
 
@@ -13,11 +12,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4001)
             return
 
-        self.other_id = self.scope["url_route"]["kwargs"]["other_user_id"]
-        self.conversation = await self.get_or_create_conversation()
+        # NEW — conversation id straight from the URL, no more pair math
+        self.conversation_id = self.scope["url_route"]["kwargs"]["conversation_id"]
+        self.conversation = await self.get_conversation()
 
-        a, b = sorted([self.me.id, self.other_id])
-        self.group_name = f"chat_{a}_{b}"
+        # NEW — you can't listen in on a conversation you're not in
+        if self.conversation is None:
+            await self.close(code=4003)
+            return
+
+        self.group_name = f"convo_{self.conversation_id}"
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
@@ -46,16 +50,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "message": event["message"],
         }))
 
+    # NEW — fetch instead of create; the REST endpoints own creation now
     @database_sync_to_async
-    def get_or_create_conversation(self):
-        convo = (Conversation.objects
-                 .filter(participants=self.me)
-                 .filter(participants__id=self.other_id)
-                 .first())
-        if convo is None:
-            convo = Conversation.objects.create()
-            convo.participants.add(self.me, User.objects.get(id=self.other_id))
-        return convo
+    def get_conversation(self):
+        return (Conversation.objects
+                .filter(id=self.conversation_id, participants=self.me)
+                .first())
 
     @database_sync_to_async
     def save_message(self, text):
@@ -64,11 +64,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             sender=self.me,
             text=text,
         )
+        profile = getattr(self.me, "profile", None)
         return {
             "id": m.id,
             "text": m.text,
             "sender": self.me.id,
-            "sender_name": self.me.profile.display_name or self.me.username,
+            "sender_name": (profile.display_name if profile else "") or self.me.username,
             "timestamp": m.timestamp.isoformat(),
             "image": None,
         }

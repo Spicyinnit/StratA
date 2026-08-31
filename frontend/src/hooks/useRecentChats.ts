@@ -1,162 +1,58 @@
 import * as React from 'react';
-import { apiFetch, markConversationRead } from '../api';
+import { fetchConversations, markConversationRead, type ConversationSummary } from '../api';
 
-export type RecentContact = {
-  user_id: number;
-  tag: string;
-  display_name?: string | null;
-  avatar: string | null;
-};
+// NEW — the sidebar's unit is a conversation now, not a contact.
+// Groups have no user_id, so nothing can be keyed on that anymore.
+export type RecentChat = ConversationSummary;
 
-function load(meId: number): RecentContact[] {
-  try {
-    const raw = localStorage.getItem(`recentChats_${meId}`);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
+export function useRecentChats(activeConversationId: number | null) {
+  const [recentChats, setRecentChats] = React.useState<RecentChat[]>([]);
 
-function save(meId: number, contacts: RecentContact[]) {
-  try {
-    localStorage.setItem(`recentChats_${meId}`, JSON.stringify(contacts));
-  } catch {
-    //ignore
-  }
-}
+  const activeRef = React.useRef(activeConversationId);
+  activeRef.current = activeConversationId;
 
-export function useRecentChats(meId: number, activeOtherId: number | null) {
-  const [recentChats, setRecentChats] = React.useState<RecentContact[]>([]);
-  const [unreadCounts, setUnreadCounts] = React.useState<Record<number, number>>({});
-
-  React.useEffect(() => {
-    const cached = load(meId);
-    setRecentChats(cached);
-    if (cached.length === 0) return;
-
-    let cancelled = false;
-
-    (async () => {
-      const fresh = await Promise.all(
-        cached.map(async (c) => {
-          try {
-            const res = await apiFetch(`/api/users/${c.user_id}/`);
-            if (!res.ok) return c;
-            const d = await res.json();
-            return {
-              user_id: c.user_id,
-              tag: d.tag ?? c.tag,
-              display_name: d.display_name ?? null,
-              avatar: d.avatar ?? null,
-            };
-          } catch {
-            return c;
-          }
-        }),
-      );
-      if (cancelled) return;
-      setRecentChats(fresh);
-      save(meId, fresh);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [meId]);
-
-  const addOrBump = React.useCallback(
-    (contact: RecentContact) => {
-      setRecentChats((prev) => {
-        const withoutDupe = prev.filter((c) => c.user_id !== contact.user_id);
-        const updated = [contact, ...withoutDupe].slice(0, 20);
-        save(meId, updated);
-        return updated;
-      });
-    },
-    [meId],
-  );
-
-  const addIfMissing = React.useCallback(
-    (contact: RecentContact) => {
-      setRecentChats((prev) => {
-        if (prev.some((c) => c.user_id === contact.user_id)) return prev;
-        const updated = [contact, ...prev].slice(0, 20);
-        save(meId, updated);
-        return updated;
-      });
-    },
-    [meId],
-  );
-
-  const remove = React.useCallback(
-    (userId: number) => {
-      setRecentChats((prev) => {
-        const updated = prev.filter((c) => c.user_id !== userId);
-        save(meId, updated);
-        return updated;
-      });
-      setUnreadCounts((prev) => {
-        if (!prev[userId]) return prev;
-        const next = { ...prev };
-        delete next[userId];
-        return next;
-      });
-    },
-    [meId],
-  );
-
-  const activeRef = React.useRef(activeOtherId);
-  activeRef.current = activeOtherId;
-
-  const markRead = React.useCallback(async (userId: number) => {
-    setUnreadCounts((prev) => {
-      if (!prev[userId]) return prev;
-      const next = { ...prev };
-      delete next[userId];
-      return next;
-    });
+  const refresh = React.useCallback(async () => {
+    let items: ConversationSummary[];
     try {
-      await markConversationRead(userId);
+      items = await fetchConversations();
+    } catch {
+      return;
+    }
+
+    // the chat you're looking at is read by definition
+    const active = activeRef.current;
+    if (active) {
+      const open = items.find((c) => c.id === active);
+      if (open && open.unread_count > 0) {
+        markConversationRead(active).catch(() => {});
+        open.unread_count = 0;
+      }
+    }
+
+    setRecentChats(items);
+  }, []);
+
+  // poll — coach's call, keeping it
+  React.useEffect(() => {
+    refresh();
+    const id = setInterval(refresh, 2000);
+    return () => clearInterval(id);
+  }, [refresh]);
+
+  const markRead = React.useCallback(async (conversationId: number) => {
+    setRecentChats((prev) =>
+      prev.map((c) => (c.id === conversationId ? { ...c, unread_count: 0 } : c)),
+    );
+    try {
+      await markConversationRead(conversationId);
     } catch {
       // ignore
     }
   }, []);
 
-  // poll unread- keep contact badge counts, pull unknown senders into the sidebar
-  React.useEffect(() => {
-    const tick = async () => {
-      let items: any[];
-      try {
-        const res = await apiFetch('/api/conversations/unread-summary/');
-        if (!res.ok) return;
-        items = await res.json();
-      } catch {
-        return;
-      }
+  const remove = React.useCallback((conversationId: number) => {
+    setRecentChats((prev) => prev.filter((c) => c.id !== conversationId));
+  }, []);
 
-      const counts: Record<number, number> = {};
-
-      for (const it of items) {
-        addIfMissing({
-          user_id: it.user_id,
-          tag: it.tag,
-          display_name: it.display_name,
-          avatar: it.avatar,
-        });
-        if (it.user_id === activeRef.current) {
-          markConversationRead(it.user_id).catch(() => {});
-          continue;
-        }
-        counts[it.user_id] = it.unread_count;
-      }
-
-      setUnreadCounts(counts);
-    };
-
-    tick();
-    const id = setInterval(tick, 2000);
-    return () => clearInterval(id);
-  }, [addIfMissing]);
-
-  return { recentChats, addOrBump, addIfMissing, remove, unreadCounts, markRead };
+  return { recentChats, refresh, markRead, remove };
 }

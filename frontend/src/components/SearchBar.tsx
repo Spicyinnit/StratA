@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { apiFetch } from '../api';
+import { useAppTheme } from '../Themes';
 
 type Props = {
   meId: number;
@@ -7,6 +8,8 @@ type Props = {
 };
 
 export function SearchBar({ meId, onSelect }: Props) {
+  const { mode } = useAppTheme();
+  const light = mode === 'light';
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState<any[]>([]);
   const [show, setShow] = React.useState(false);
@@ -38,6 +41,9 @@ export function SearchBar({ meId, onSelect }: Props) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const surface = light ? '#FFFFFF' : '#2A2320';
+  const textColor = light ? '#2A211A' : '#F5EDE2';
+
   return (
     <div ref={boxRef} style={{ position: 'relative', marginBottom: 12 }}>
       <input
@@ -46,11 +52,11 @@ export function SearchBar({ meId, onSelect }: Props) {
         onFocus={() => setShow(true)}
         placeholder="Search @tag..."
         style={{
-          background: '#3a3a3a',
-          border: '1px solid #444',
+          background: surface,
+          border: `1px solid ${light ? '#D9CBAE' : '#3A312C'}`,
           borderRadius: 8,
           padding: '8px 12px',
-          color: '#FAF3E1',
+          color: textColor,
           fontSize: 14,
           outline: 'none',
           width: '100%',
@@ -65,11 +71,12 @@ export function SearchBar({ meId, onSelect }: Props) {
             left: 0,
             right: 0,
             marginTop: 4,
-            background: '#3a3a3a',
+            background: surface,
+            border: `1px solid ${light ? '#D9CBAE' : '#3A312C'}`,
             borderRadius: 8,
             overflow: 'hidden',
             zIndex: 10,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            boxShadow: light ? '0 4px 12px rgba(0,0,0,0.12)' : '0 4px 12px rgba(0,0,0,0.4)',
           }}
         >
           {results.map((u) => (
@@ -81,8 +88,8 @@ export function SearchBar({ meId, onSelect }: Props) {
                 setResults([]);
                 setShow(false);
               }}
-              style={{ padding: '8px 12px', cursor: 'pointer', color: '#FAF3E1', fontSize: 14 }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#4a4a4a')}
+              style={{ padding: '8px 12px', cursor: 'pointer', color: textColor, fontSize: 14 }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = light ? '#F1E8D4' : '#3A312C')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               @{u.tag}

@@ -8,3 +8,20 @@ html, body, #root {
   width: 100%;
   height: 100%;
 }
+
+/*scrollbar styles vvv*/
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4a4a4a transparent;
+}
+
+*::-webkit-scrollbar { width: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+
+/*scary css*/

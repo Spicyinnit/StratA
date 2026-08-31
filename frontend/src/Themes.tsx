@@ -39,15 +39,17 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
   const theme = useMemo(() => createTheme({
     palette: {
       mode,
-      primary: { main: '#FF6D1F' },
+      primary: { main: mode === 'light' ? '#C2410C' : '#E2571E' },
       ...(mode === 'light'
         ? {
-            background: { default: '#FAF3E1', paper: '#FAF3E1' },
-            text: { primary: '#222222', secondary: '#8a7854' },
+            background: { default: '#E8DDC8', paper: '#FAF3E1' },
+            text: { primary: '#2A211A', secondary: '#8A7A62' },
+            divider: '#D9CBAE',
           }
         : {
-            background: { default: '#222222', paper: '#2C2C2C' },
-            text: { primary: '#FAF3E1', secondary: '#9a9a9a' },
+            background: { default: '#14100E', paper: '#221D1A' },
+            text: { primary: '#F5EDE2', secondary: '#9A8D82' },
+            divider: '#322B27',
           }),
     },
     typography: { fontFamily: '"Inter", system-ui, sans-serif' },
@@ -55,7 +57,7 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
     components: {
       MuiPaper: {
         styleOverrides: {
-          root: { border: `1px solid ${mode === 'light' ? '#d8cba8' : '#3a3a3a'}` },
+          root: { border: `1px solid ${mode === 'light' ? '#D9CBAE' : '#322B27'}` },
         },
       },
     },

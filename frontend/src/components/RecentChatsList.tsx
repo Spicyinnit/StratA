@@ -1,18 +1,27 @@
-import type { RecentContact } from '../hooks/useRecentChats';
+import type { RecentChat } from '../hooks/useRecentChats';
+import { useAppTheme } from '../Themes';
 
 type Props = {
-  chats: RecentContact[];
-  activeId: number;
-  onSelect: (c: RecentContact) => void;
-  onDelete: (c: RecentContact) => void;
-  onAvatarClick: (c: RecentContact) => void;
-  unreadCounts: Record<number, number>;
+  chats: RecentChat[];
+  activeId: number | null;              // NEW — conversation id, not user id
+  onSelect: (c: RecentChat) => void;
+  onDelete: (c: RecentChat) => void;
+  onAvatarClick: (c: RecentChat) => void;
 };
 
-export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarClick, unreadCounts }: Props) {
+export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarClick }: Props) {
+  const { mode } = useAppTheme();
+  const light = mode === 'light';
+
+  const accent = light ? '#C2410C' : '#E2571E';
+  const textColor = light ? '#2A211A' : '#F5EDE2';
+  const muted = light ? '#8A7A62' : '#9A8D82';
+  const activeBg = light ? '#EDE3CE' : '#2A2320';
+  const hoverBg = light ? '#F1E8D4' : '#241E1A';
+
   if (chats.length === 0) {
     return (
-      <div style={{ color: '#8a7854', fontSize: 13, padding: '8px 4px' }}>
+      <div style={{ color: muted, fontSize: 13, padding: '8px 4px' }}>
         No chats yet.
       </div>
     );
@@ -20,96 +29,117 @@ export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarC
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
-      {chats.map((c) => (
-        <div
-          key={c.user_id}
-          onClick={() => onSelect(c)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '10px 12px',
-            borderRadius: 10,
-            background: activeId === c.user_id ? '#3a3a3a' : 'transparent',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={(e) => {
-            if (activeId !== c.user_id) e.currentTarget.style.background = '#333333';
-          }}
-          onMouseLeave={(e) => {
-            if (activeId !== c.user_id) e.currentTarget.style.background = 'transparent';
-          }}
-        >
+      {chats.map((c) => {
+        const active = activeId === c.id;
+        const unread = c.unread_count;
+        const label = c.info.display_name;
+
+        return (
           <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onAvatarClick(c);
-            }}
-            title="View profile"
+            key={c.id}
+            onClick={() => onSelect(c)}
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              background: '#FF6D1F',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              color: '#222222',
-              fontSize: 14,
-              fontWeight: 600,
-              flexShrink: 0,
-              overflow: 'hidden',
+              gap: 10,
+              padding: '10px 12px',
+              borderRadius: 10,
+              background: active ? activeBg : 'transparent',
               cursor: 'pointer',
             }}
+            onMouseEnter={(e) => {
+              if (!active) e.currentTarget.style.background = hoverBg;
+            }}
+            onMouseLeave={(e) => {
+              if (!active) e.currentTarget.style.background = 'transparent';
+            }}
           >
-            {c.avatar ? (
-              <img src={c.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              c.tag[0].toUpperCase()
-            )}
-          </div>
-          <span style={{ color: '#FAF3E1', fontSize: 15 }}>{c.tag}</span>
-          {unreadCounts[c.user_id] > 0 && (
-            <span
+            <div
+              onClick={(e) => {
+                // NEW — groups have no profile to open, so don't swallow the click
+                if (c.is_group) return;
+                e.stopPropagation();
+                onAvatarClick(c);
+              }}
+              title={c.is_group ? undefined : 'View profile'}
               style={{
-                marginLeft: 'auto',
-                background: '#FF6D1F',
-                color: '#222222',
-                fontSize: 12,
-                fontWeight: 700,
-                minWidth: 20,
-                height: 20,
-                borderRadius: 10,
-                padding: '0 6px',
+                width: 32,
+                height: 32,
+                borderRadius: c.is_group ? 10 : '50%',   // NEW — squircle marks a group
+                background: accent,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                color: '#FFFFFF',
+                fontSize: 14,
+                fontWeight: 600,
+                flexShrink: 0,
+                overflow: 'hidden',
+                cursor: c.is_group ? 'inherit' : 'pointer',
               }}
             >
-              {unreadCounts[c.user_id] > 99 ? '99+' : unreadCounts[c.user_id]}
-            </span>
-          )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(c);
-            }}
-            style={{
-              marginLeft: unreadCounts[c.user_id] > 0 ? 6 : 'auto',
-              background: 'none',
-              border: 'none',
-              color: '#8a7854',
-              cursor: 'pointer',
-              fontSize: 16,
-              padding: '0 4px',
-              lineHeight: 1,
-            }}
-            title="Delete chat"
-          >
-            ✕
-          </button>
-        </div>
-      ))}
+              {c.info.avatar ? (
+                <img src={c.info.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                label[0]?.toUpperCase() ?? '?'
+              )}
+            </div>
+
+            <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+              <span style={{ color: textColor, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {label}
+              </span>
+              {/* NEW — member count so groups read as groups at a glance */}
+              {c.is_group && (
+                <span style={{ color: muted, fontSize: 12 }}>
+                  {c.info.member_count} members
+                </span>
+              )}
+            </div>
+
+            {unread > 0 && (
+              <span
+                style={{
+                  marginLeft: 'auto',
+                  background: accent,
+                  color: '#FFFFFF',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  minWidth: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  padding: '0 6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {unread > 99 ? '99+' : unread}
+              </span>
+            )}
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(c);
+              }}
+              style={{
+                marginLeft: unread > 0 ? 6 : 'auto',
+                background: 'none',
+                border: 'none',
+                color: muted,
+                cursor: 'pointer',
+                fontSize: 16,
+                padding: '0 4px',
+                lineHeight: 1,
+              }}
+              title={c.is_group ? 'Leave group' : 'Delete chat'}   // NEW
+            >
+              ✕
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 }

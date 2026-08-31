@@ -13,6 +13,7 @@ class MessageSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(use_url=True, required=False)
     sender_avatar = serializers.SerializerMethodField()
     sender_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Message
         fields = ['id', 'sender', 'sender_avatar', 'sender_name', 'text', 'image', 'timestamp']
@@ -38,6 +39,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
 class ConversationSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
+
     class Meta:
         model = Conversation
         fields = ['id', 'participants', 'messages']
@@ -67,3 +69,69 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop("password2")
         return User.objects.create_user(**validated_data)
+
+#groups
+
+class ConversationListSerializer(serializers.ModelSerializer):
+    """One flat shape for DMs and groups so the sidebar has a single code path."""
+    info = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
+    unread_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Conversation  #model that am I serializing
+        fields = ['id', 'is_group', 'info', 'last_message', 'unread_count']  # fields that go in the json
+
+    def get_info(self, obj):
+        me = self.context['request'].user
+        req = self.context.get('request')
+        abs_url = lambda f: (req.build_absolute_uri(f.url) if req else f.url) if f else None
+
+        if obj.is_group:
+            return {
+                'display_name': obj.name or f"Group {obj.id}",
+                'tag': None,
+                'avatar': abs_url(obj.avatar),
+                'user_id': None,
+                'member_count': obj.participants.count(),
+            }
+
+        other = obj.participants.exclude(id=me.id).first()
+        profile = getattr(other, 'profile', None) if other else None
+        return {
+            'display_name': (profile.display_name if profile else '') or (other.username if other else 'Deleted user'),
+            'tag': other.username if other else None,
+            'avatar': abs_url(profile.avatar) if profile else None,
+            'user_id': other.id if other else None,
+            'member_count': 2,
+        }
+
+    def get_last_message(self, obj):
+        msg = obj.messages.order_by('-timestamp').first()
+        if not msg:
+            return None
+        return {'id': msg.id, 'preview': (msg.text or '')[:60] or '📷 Image',
+                'timestamp': msg.timestamp, 'sender_id': msg.sender_id}
+
+    def get_unread_count(self, obj):
+        me = self.context['request'].user
+        return obj.messages.filter(is_read=False).exclude(sender=me).count()
+
+
+class GroupDetailSerializer(serializers.ModelSerializer):
+    avatar_url = serializers.SerializerMethodField()
+    members = serializers.SerializerMethodField()
+
+    def get_avatar_url(self, obj):
+        if not obj.avatar:
+            return None
+        request = self.context.get('request')
+        url = obj.avatar.url
+        return request.build_absolute_uri(url) if request else url
+
+    def get_members(self, obj):
+        return obj.participants.values('id', 'username', 'profile__display_name')
+
+    class Meta:
+        model = Conversation
+        fields = ['id', 'is_group', 'name', 'avatar_url', 'owner', 'members', 'created_at']
