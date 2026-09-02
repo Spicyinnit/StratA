@@ -247,7 +247,7 @@ export default function ProfileDialog({
 
             <Divider />
             <Button color="error" onClick={logout}>
-              Log out 🚪
+              Log out
             </Button>
           </Box>
         )}

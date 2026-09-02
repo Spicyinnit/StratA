@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Conversation, Message, UserProfile
+from .models import Conversation, ConversationState, Message, UserProfile, Contact
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -47,10 +47,21 @@ class ConversationSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     tag = serializers.CharField(source="user.username", read_only=True)
+    nickname = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
-        fields = ["id", "tag", "display_name", "bio", "avatar"]
+        fields = ["id", "tag", "display_name", "bio", "avatar", "nickname"]
+
+    def get_nickname(self, obj):
+        """The nickname the REQUESTING user saved for this person. Nobody else sees it."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return ""
+        if request.user.id == obj.user_id:
+            return ""  # you don't nickname yourself
+        contact = Contact.objects.filter(owner=request.user, target=obj.user_id).first()
+        return contact.nickname if contact else ""
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -70,17 +81,22 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data.pop("password2")
         return User.objects.create_user(**validated_data)
 
-#groups
+
+# groups
 
 class ConversationListSerializer(serializers.ModelSerializer):
     """One flat shape for DMs and groups so the sidebar has a single code path."""
     info = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
+    pinned = serializers.SerializerMethodField()
+    muted = serializers.SerializerMethodField()
+    archived = serializers.SerializerMethodField()
 
     class Meta:
-        model = Conversation  #model that am I serializing
-        fields = ['id', 'is_group', 'info', 'last_message', 'unread_count']  # fields that go in the json
+        model = Conversation  # model that im serializing
+        fields = ['id', 'is_group', 'info', 'last_message', 'unread_count',
+                  'pinned', 'muted', 'archived']  # fields that go in the json
 
     def get_info(self, obj):
         me = self.context['request'].user
@@ -94,28 +110,45 @@ class ConversationListSerializer(serializers.ModelSerializer):
                 'avatar': abs_url(obj.avatar),
                 'user_id': None,
                 'member_count': obj.participants.count(),
+                'nickname': '',
             }
 
         other = obj.participants.exclude(id=me.id).first()
         profile = getattr(other, 'profile', None) if other else None
+
+        # nicknames dict is prefetched once in the view — avoids one query per row
+        nicknames = self.context.get('nicknames', {})
+        nickname = nicknames.get(other.id, '') if other else ''
+
         return {
             'display_name': (profile.display_name if profile else '') or (other.username if other else 'Deleted user'),
             'tag': other.username if other else None,
             'avatar': abs_url(profile.avatar) if profile else None,
             'user_id': other.id if other else None,
             'member_count': 2,
+            'nickname': nickname,
         }
 
     def get_last_message(self, obj):
         msg = obj.messages.order_by('-timestamp').first()
         if not msg:
             return None
-        return {'id': msg.id, 'preview': (msg.text or '')[:60] or '📷 Image',
+        return {'id': msg.id, 'preview': (msg.text or '')[:60] or 'Image',
                 'timestamp': msg.timestamp, 'sender_id': msg.sender_id}
 
     def get_unread_count(self, obj):
         me = self.context['request'].user
         return obj.messages.filter(is_read=False).exclude(sender=me).count()
+
+    # states dict is prefetched once in the view, same trick as nicknames
+    def get_pinned(self, obj):
+        return self.context.get('states', {}).get(obj.id, {}).get('pinned', False)
+
+    def get_muted(self, obj):
+        return self.context.get('states', {}).get(obj.id, {}).get('muted', False)
+
+    def get_archived(self, obj):
+        return self.context.get('states', {}).get(obj.id, {}).get('archived', False)
 
 
 class GroupDetailSerializer(serializers.ModelSerializer):

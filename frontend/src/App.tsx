@@ -3,7 +3,7 @@ import { ChatBox } from '@mui/x-chat';
 import { ChatProvider } from '@mui/x-chat/headless';
 import type { ChatConversation, ChatMessage } from '@mui/x-chat/headless';
 import { Avatar, Button, IconButton, Snackbar } from '@mui/material';
-import { apiFetch, toChatMessages, deleteConversationWith, leaveGroup } from './api';
+import { apiFetch, toChatMessages, deleteConversationWith, leaveGroup, nameFor } from './api';
 import { useRecentChats, type RecentChat } from './hooks/useRecentChats';
 import { useChatSocket } from './hooks/useChatSocket';
 import { SearchBar } from './components/SearchBar';
@@ -35,14 +35,15 @@ function ChatApp() {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [pending, setPending] = React.useState<RecentChat | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [showArchived, setShowArchived] = React.useState(false);
 
-  const { recentChats, refresh, markRead, remove } = useRecentChats(conversationId);
+const { recentChats, refresh, markRead, remove, setFlag } = useRecentChats(conversationId);
 
-  // the row for whatever's open, so the header knows what to show
+  // the row for whatevers open the header knows what to show
   const active = recentChats.find((c) => c.id === conversationId) ?? null;
 
   const conversations: ChatConversation[] = [
-    { id: 'main', title: active ? active.info.display_name : 'No chat selected', readState: 'read' },
+    { id: 'main', title: active ? nameFor(active.info) : 'No chat selected', readState: 'read' },
   ];
 
   const openConversation = (c: RecentChat) => {
@@ -174,18 +175,27 @@ function ChatApp() {
             fontSize: 14,
           }}
         >
-          + New group
+            + New group
         </Button>
 
+        {(showArchived || recentChats.some((c) => c.archived)) && (
+          <Button
+            onClick={() => setShowArchived((v) => !v)}
+            sx={{ mb: 1, color: light ? '#8A7A62' : '#9A8D82', justifyContent: 'flex-start', textTransform: 'none', fontSize: 13 }}
+          >
+            {showArchived ? 'Back to chats' : `Archived (${recentChats.filter((c) => c.archived).length})`}
+          </Button>
+        )}
+
         <RecentChatsList
-          chats={recentChats}
+          chats={recentChats.filter((c) => c.archived === showArchived)}
           activeId={conversationId}
           onSelect={openConversation}
           onDelete={handleDelete}
           onAvatarClick={(c) => c.info.user_id && setViewUserId(c.info.user_id)}
+          onSetFlag={(c, flag, value) => setFlag(c.id, flag, value)}
         />
       </div>
-
       <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', padding: 24 }}>
         <div style={{
           flex: 1,
@@ -261,6 +271,7 @@ function ChatApp() {
           openDmWith(u.user_id);
           setViewUserId(null);
         }}
+        onNicknameSaved={refresh}
       />
 
       {/* NEW */}
@@ -281,8 +292,8 @@ function ChatApp() {
         title={pending?.is_group ? 'Leave group?' : 'Delete chat?'}
         message={
           pending?.is_group
-            ? `You'll stop receiving messages from ${pending?.info.display_name}.`
-            : `This erases all messages with ${pending?.info.display_name} for both of you.`
+            ? `You'll stop receiving messages from ${pending ? nameFor(pending.info) : ''}.`
+            : `This erases all messages with ${pending ? nameFor(pending.info) : ''} for both of you.`
         }
         confirmLabel={pending?.is_group ? 'Leave' : 'Delete'}
         onCancel={() => setPending(null)}

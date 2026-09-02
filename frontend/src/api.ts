@@ -68,10 +68,32 @@ export function markConversationRead(conversationId: number) {
 }
 
 
+// NEW — nicknames (private, only you see the ones you set)
+
+/** One place that decides what name to show. Use this everywhere instead of
+ *  reaching for display_name directly, so nicknames win consistently. */
+export function nameFor(
+  x: { nickname?: string | null; display_name?: string | null; tag?: string | null },
+): string {
+  return x.nickname || x.display_name || x.tag || 'Unknown';
+}
+
+/** Pass an empty string to clear. Returns the saved value. */
+export async function setNickname(userId: number, nickname: string): Promise<string> {
+  const res = await apiFetch(`/api/users/${userId}/nickname/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ nickname }),
+  });
+  if (!res.ok) throw new Error((await res.json()).detail ?? 'Could not save nickname');
+  return (await res.json()).nickname as string;
+}
+
+
 // NEW — sidebar list: DMs and groups in one call
 
 export type ConversationInfo = {
   display_name: string;
+  nickname: string;            // NEW — '' when unset or when it's a group
   tag: string | null;
   avatar: string | null;
   user_id: number | null;      // null for groups
@@ -84,11 +106,32 @@ export type ConversationSummary = {
   info: ConversationInfo;
   last_message: { id: number; preview: string; timestamp: string; sender_id: number } | null;
   unread_count: number;
+  pinned: boolean;             // NEW
+  muted: boolean;              // NEW
+  archived: boolean;           // NEW
 };
 
 export async function fetchConversations(): Promise<ConversationSummary[]> {
   const res = await apiFetch('/api/conversations/');
   if (!res.ok) throw new Error('Failed to load conversations');
+  return res.json();
+}
+
+
+// NEW — per-user chat flags (pin / mute / archive)
+
+export type ConversationFlags = { pinned: boolean; muted: boolean; archived: boolean };
+
+/** Send any subset — omitted flags stay as they are. Returns all three. */
+export async function setConversationState(
+  conversationId: number,
+  changes: Partial<ConversationFlags>,
+): Promise<ConversationFlags> {
+  const res = await apiFetch(`/api/conversations/${conversationId}/state/`, {
+    method: 'PATCH',
+    body: JSON.stringify(changes),
+  });
+  if (!res.ok) throw new Error('Could not update conversation');
   return res.json();
 }
 

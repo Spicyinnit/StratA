@@ -1,10 +1,7 @@
 import * as React from 'react';
-import { fetchConversations, markConversationRead, type ConversationSummary } from '../api';
+import { fetchConversations, markConversationRead, setConversationState, type ConversationSummary } from '../api';
 
-// NEW — the sidebar's unit is a conversation now, not a contact.
-// Groups have no user_id, so nothing can be keyed on that anymore.
 export type RecentChat = ConversationSummary;
-
 export function useRecentChats(activeConversationId: number | null) {
   const [recentChats, setRecentChats] = React.useState<RecentChat[]>([]);
 
@@ -19,7 +16,6 @@ export function useRecentChats(activeConversationId: number | null) {
       return;
     }
 
-    // the chat you're looking at is read by definition
     const active = activeRef.current;
     if (active) {
       const open = items.find((c) => c.id === active);
@@ -27,12 +23,13 @@ export function useRecentChats(activeConversationId: number | null) {
         markConversationRead(active).catch(() => {});
         open.unread_count = 0;
       }
-    }
-
+        }
+      
+    items.sort((a, b) => Number(b.pinned) - Number(a.pinned));
     setRecentChats(items);
   }, []);
 
-  // poll — coach's call, keeping it
+  // poll
   React.useEffect(() => {
     refresh();
     const id = setInterval(refresh, 2000);
@@ -50,9 +47,23 @@ export function useRecentChats(activeConversationId: number | null) {
     }
   }, []);
 
+    const setFlag = React.useCallback(
+    async (conversationId: number, flag: 'pinned' | 'muted' | 'archived', value: boolean) => {
+      setRecentChats((prev) =>
+        prev.map((c) => (c.id === conversationId ? { ...c, [flag]: value } : c)),
+      );
+      try {
+        await setConversationState(conversationId, { [flag]: value });
+      } catch {
+        refresh();  // server said no — snap back to truth
+      }
+    },
+    [refresh],
+  );
+
   const remove = React.useCallback((conversationId: number) => {
     setRecentChats((prev) => prev.filter((c) => c.id !== conversationId));
   }, []);
 
-  return { recentChats, refresh, markRead, remove };
+  return { recentChats, refresh, markRead, remove, setFlag };
 }

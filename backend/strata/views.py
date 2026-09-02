@@ -11,15 +11,26 @@ from django.contrib.auth.models import User
 from rest_framework.generics import RetrieveAPIView
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-
-
-from .models import Conversation, Message, UserProfile
+from .models import Conversation, Message, UserProfile, Contact, ConversationState
 from .serializers import (
     UserProfileSerializer, UserSerializer, ConversationSerializer,
     MessageSerializer, RegisterSerializer,
-    ConversationListSerializer, GroupDetailSerializer,   # NEW
+    ConversationListSerializer, GroupDetailSerializer,
 )
 
+def _my_nicknames(user):
+    return dict(
+        Contact.objects
+        .filter(owner=user)
+        .exclude(nickname='')
+        .values_list('target_id', 'nickname')
+    )
+
+def _my_conversation_states(user):
+    rows = ConversationState.objects.filter(user=user).values(
+        "conversation_id", "pinned", "muted", "archived"
+    )
+    return {r["conversation_id"]: r for r in rows}
 
 # auth
 
@@ -84,6 +95,33 @@ class UserDetailView(RetrieveAPIView):
         return get_object_or_404(User, pk=self.kwargs["pk"]).profile
 
 
+@api_view(['PATCH', 'DELETE'])
+def set_nickname(request, user_id):
+    """PATCH {"nickname": "..."} to save your private name for someone.
+    Empty string or DELETE clears it. Only the caller ever sees this."""
+    if int(user_id) == request.user.id:
+        return Response({'detail': "you can't nickname yourself"}, status=400)
+
+    target = get_object_or_404(User, pk=user_id)
+
+    if request.method == 'DELETE':
+        Contact.objects.filter(owner=request.user, target=target).delete()
+        return Response({'nickname': ''})
+
+    nickname = (request.data.get('nickname') or '').strip()
+    if len(nickname) > 50:
+        return Response({'detail': 'Nickname is too long (max 50)'}, status=400)
+
+    if not nickname:
+        Contact.objects.filter(owner=request.user, target=target).delete()
+        return Response({'nickname': ''})
+
+    contact, _ = Contact.objects.get_or_create(owner=request.user, target=target)
+    contact.nickname = nickname
+    contact.save()
+    return Response({'nickname': contact.nickname})
+
+
 @api_view(['GET'])
 def search_users(request):
     q = request.GET.get('q', '').strip().lstrip('@')
@@ -95,6 +133,8 @@ def search_users(request):
              .exclude(id=request.user.id)
              .select_related('profile')[:10])
 
+    nicknames = _my_nicknames(request.user)          # NEW
+
     data = []
     for u in users:
         profile = getattr(u, 'profile', None)
@@ -105,6 +145,7 @@ def search_users(request):
             'user_id': u.id,
             'tag': u.username,
             'display_name': (profile.display_name if profile else '') or u.username,
+            'nickname': nicknames.get(u.id, ''),      # NEW
             'avatar': avatar,
         })
     return Response(data)
@@ -132,8 +173,32 @@ def my_conversations(request):
               .annotate(last_activity=Max('messages__timestamp'))
               .order_by(models.F('last_activity').desc(nulls_last=True), '-created_at')
               .prefetch_related('participants', 'messages'))
-    data = ConversationListSerializer(convos, many=True, context={'request': request}).data
+    data = ConversationListSerializer(
+        convos,
+        many=True,
+        context={
+            'request': request,
+            'nicknames': _my_nicknames(request.user),
+            'states': _my_conversation_states(request.user),
+        },
+    ).data
     return Response(data)
+
+@api_view(['PATCH'])
+def set_conversation_state(request, conversation_id):
+    """Toggle pinned/muted/archived for the caller only. Send any subset."""
+    convo = get_object_or_404(Conversation, id=conversation_id)
+    if not convo.participants.filter(id=request.user.id).exists():
+        return Response({'detail': 'not your conversation'}, status=403)
+
+    state, _ = ConversationState.objects.get_or_create(user=request.user, conversation=convo)
+
+    for field in ('pinned', 'muted', 'archived'):
+        if field in request.data:
+            setattr(state, field, bool(request.data[field]))
+    state.save()
+
+    return Response({'pinned': state.pinned, 'muted': state.muted, 'archived': state.archived})
 
 
 @api_view(['GET'])
@@ -146,7 +211,7 @@ def get_or_create_conversation(request, user1_id, user2_id):
     user2 = get_object_or_404(User, id=user2_id)
 
     convo = (Conversation.objects
-             .filter(is_group=False)                       # NEW — don't match a group
+             .filter(is_group=False)
              .filter(participants=user1)
              .filter(participants=user2)
              .first())
@@ -214,6 +279,8 @@ def mark_read(request, conversation_id):
 
 @api_view(['GET'])
 def unread_summary(request):
+    nicknames = _my_nicknames(request.user)            # NEW
+
     data = []
     for convo in Conversation.objects.filter(participants=request.user):
         unread = convo.messages.filter(is_read=False).exclude(sender=request.user)
@@ -235,6 +302,7 @@ def unread_summary(request):
                 'user_id': None,
                 'tag': None,
                 'display_name': convo.name or f"Group {convo.id}",
+                'nickname': '',                            # NEW
                 'avatar': request.build_absolute_uri(convo.avatar.url) if convo.avatar else None,
             })
         else:
@@ -246,6 +314,7 @@ def unread_summary(request):
                 'user_id': other.id,
                 'tag': other.username,
                 'display_name': (profile.display_name if profile else '') or other.username,
+                'nickname': nicknames.get(other.id, ''),   # NEW
                 'avatar': request.build_absolute_uri(profile.avatar.url) if profile and profile.avatar else None,
             })
 
@@ -355,7 +424,7 @@ def leave_group(request, conversation_id):
         return Response(status=204)
 
     if convo.owner_id == request.user.id:
-        convo.owner = remaining.first()    # hand ownership to whoever's left
+        convo.owner = remaining.first()    # hand ownership to whoevers left
         convo.save()
 
     return Response(status=204)
