@@ -172,7 +172,7 @@ export default function ProfileDialog({
               fullWidth
               disabled
               value={profile.tag || user?.username || ""}
-              helperText="This is your login — can't be changed yet"
+              helperText="Cannot be changed "
               slotProps={{ input: { startAdornment: <Box sx={{ mr: 0.5, opacity: 0.6 }}>@</Box> } }}
             />
             <TextField

@@ -23,8 +23,7 @@ export function useRecentChats(activeConversationId: number | null) {
         markConversationRead(active).catch(() => {});
         open.unread_count = 0;
       }
-        }
-      
+    }
     items.sort((a, b) => Number(b.pinned) - Number(a.pinned));
     setRecentChats(items);
   }, []);
@@ -47,10 +46,12 @@ export function useRecentChats(activeConversationId: number | null) {
     }
   }, []);
 
-    const setFlag = React.useCallback(
+  const setFlag = React.useCallback(
     async (conversationId: number, flag: 'pinned' | 'muted' | 'archived', value: boolean) => {
       setRecentChats((prev) =>
-        prev.map((c) => (c.id === conversationId ? { ...c, [flag]: value } : c)),
+        prev
+          .map((c) => (c.id === conversationId ? { ...c, [flag]: value } : c))
+          .sort((a, b) => Number(b.pinned) - Number(a.pinned)),
       );
       try {
         await setConversationState(conversationId, { [flag]: value });

@@ -1,4 +1,7 @@
+from urllib import request
+
 from django.db import models
+from django.http import request
 from django.shortcuts import render, get_object_or_404
 from rest_framework import generics
 from rest_framework.decorators import api_view, parser_classes
@@ -24,7 +27,7 @@ def _my_nicknames(user):
         .filter(owner=user)
         .exclude(nickname='')
         .values_list('target_id', 'nickname')
-    )
+        )
 
 def _my_conversation_states(user):
     rows = ConversationState.objects.filter(user=user).values(
@@ -408,6 +411,16 @@ def remove_member(request, conversation_id, user_id):
 
     convo.participants.remove(user_id)
     return Response(GroupDetailSerializer(convo, context={'request': request}).data)
+
+@api_view(['PATCH'])
+def set_conversation_state(request, conversation_id):
+    convo = get_object_or_404(Conversation, id=conversation_id, participants=request.user)
+    state, _ = ConversationState.objects.get_or_create(user=request.user, conversation=convo)
+    for f in ('pinned', 'archived', 'muted'):
+        if f in request.data:
+            setattr(state, f, bool(request.data[f]))
+    state.save()
+    return Response({'pinned': state.pinned, 'archived': state.archived, 'muted': state.muted})
 
 
 @api_view(['POST'])

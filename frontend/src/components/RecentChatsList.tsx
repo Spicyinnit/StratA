@@ -1,19 +1,25 @@
 import * as React from 'react';
-import { Menu, MenuItem } from '@mui/material';
 import type { RecentChat } from '../hooks/useRecentChats';
 import { useAppTheme } from '../Themes';
 import { nameFor } from '../api';
+//django icon imports
+import { Menu, MenuItem, } from '@mui/material';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import PushPinIcon from '@mui/icons-material/PushPin';
+
 
 type Props = {
   chats: RecentChat[];
   activeId: number | null;
+  showArchived: boolean;
   onSelect: (c: RecentChat) => void;
   onDelete: (c: RecentChat) => void;
   onAvatarClick: (c: RecentChat) => void;
   onSetFlag: (c: RecentChat, flag: 'pinned' | 'muted' | 'archived', value: boolean) => void;
 };
 
-export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarClick, onSetFlag }: Props) {
+export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarClick, onSetFlag, showArchived }: Props) {
   const { mode } = useAppTheme();
   const light = mode === 'light';
 
@@ -27,20 +33,24 @@ export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarC
   const activeBg = light ? '#EDE3CE' : '#2A2320';
   const hoverBg = light ? '#F1E8D4' : '#241E1A';
 
-  if (chats.length === 0) {
+  const visible = chats.filter((c) => c.archived === showArchived);
+
+  if (visible.length === 0) {
     return (
-      <div style={{ color: muted, fontSize: 13, padding: '8px 4px' }}>
-        No chats yet.
+      <div>
+        <div style={{ color: muted, fontSize: 13, padding: '8px 4px' }}>
+          {showArchived ? 'Nothing in Archive.' : 'No chats yet.'}
+        </div>
       </div>
     );
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
-      {chats.map((c) => {
+      {visible.map((c) => {
         const active = activeId === c.id;
         const unread = c.unread_count;
-        const showBadge = unread > 0 && !c.muted;
+        const showBadge = unread > 0;
         const label = nameFor(c.info);   // nickname first
 
         return (
@@ -93,10 +103,11 @@ export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarC
                 label[0]?.toUpperCase() ?? '?'
               )}
             </div>
-
             <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-              <span style={{ color: textColor, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {c.pinned && <span style={{ color: accent, marginRight: 4 }}>•</span>}{label}
+              <span style={{ color: textColor, fontSize: 15, opacity: c.muted ? 0.6 : 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center' }}>
+                {c.pinned && <PushPinIcon sx={{ fontSize: 14, mr: 0.5, color: accent, transform: 'rotate(45deg)' }} />}
+                {label}
+                {c.muted && <NotificationsOffIcon sx={{ fontSize: 14, ml: 0.5, color: muted }} />}
               </span>
               {c.is_group && (
                 <span style={{ color: muted, fontSize: 12 }}>
@@ -109,7 +120,7 @@ export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarC
               <span
                 style={{
                   marginLeft: 'auto',
-                  background: accent,
+                  background: c.muted ? muted : accent,
                   color: '#FFFFFF',
                   fontSize: 12,
                   fontWeight: 700,
@@ -142,9 +153,8 @@ export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarC
                 padding: '0 4px',
                 lineHeight: 1,
               }}
-              title="Options"
-            >
-              ⋮
+              title="Options">
+            <MoreVertIcon sx={{ fontSize: 18 }} />
             </button>
           </div>
         );
@@ -154,8 +164,7 @@ export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarC
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
         onClose={closeMenu}
-        onClick={(e) => e.stopPropagation()}
-      >
+        onClick={(e) => e.stopPropagation()}>
         <MenuItem onClick={() => { onSetFlag(menuChat!, 'pinned', !menuChat!.pinned); closeMenu(); }}>
           {menuChat?.pinned ? 'Unpin' : 'Pin'}
         </MenuItem>

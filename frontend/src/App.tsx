@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ChatBox } from '@mui/x-chat';
 import { ChatProvider } from '@mui/x-chat/headless';
 import type { ChatConversation, ChatMessage } from '@mui/x-chat/headless';
-import { Avatar, Button, IconButton, Snackbar } from '@mui/material';
+import { Avatar, IconButton, Snackbar, ToggleButton } from '@mui/material';
 import { apiFetch, toChatMessages, deleteConversationWith, leaveGroup, nameFor } from './api';
 import { useRecentChats, type RecentChat } from './hooks/useRecentChats';
 import { useChatSocket } from './hooks/useChatSocket';
@@ -17,6 +17,8 @@ import { WALLPAPERS } from './wallpapers';
 import OtherUserProfile from './components/OtherUserProfile';
 import ConfirmDialog from './components/ConfirmDialog';
 import NewGroupDialog from './components/NewGroupDialog';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import ArchiveIcon from '@mui/icons-material/Archive';
 
 function ChatApp() {
   const { user, profile } = useAuth();
@@ -160,41 +162,35 @@ const { recentChats, refresh, markRead, remove, setFlag } = useRecentChats(conve
           <span style={{ color: light ? '#2A211A' : '#F5EDE2', fontWeight: 600, fontSize: 14 }}>
             {profile?.display_name || user!.username}
           </span>
+                    <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
+            <IconButton onClick={() => setGroupOpen(true)} size="small" sx={{ color: light ? '#C2410C' : '#E2571E' }} title="New group">
+              <GroupAddIcon fontSize="small" />
+            </IconButton>
+            <ToggleButton
+              value="archived"
+              selected={showArchived}
+              onChange={() => setShowArchived((v) => !v)}
+              size="small"
+              sx={{ border: 'none', color: light ? '#8A7A62' : '#9A8D82', '&.Mui-selected': { color: light ? '#C2410C' : '#E2571E' } }}
+              title="Archive"
+            >
+              <ArchiveIcon fontSize="small" />
+            </ToggleButton>
+          </div>
         </div>
 
         <SearchBar meId={meId} onSelect={(u) => setViewUserId(u.user_id)} />
 
-        {/* NEW */}
-        <Button
-          onClick={() => setGroupOpen(true)}
-          sx={{
-            mb: 1.5,
-            color: light ? '#C2410C' : '#E2571E',
-            justifyContent: 'flex-start',
-            textTransform: 'none',
-            fontSize: 14,
-          }}
-        >
-            + New group
-        </Button>
-
-        {(showArchived || recentChats.some((c) => c.archived)) && (
-          <Button
-            onClick={() => setShowArchived((v) => !v)}
-            sx={{ mb: 1, color: light ? '#8A7A62' : '#9A8D82', justifyContent: 'flex-start', textTransform: 'none', fontSize: 13 }}
-          >
-            {showArchived ? 'Back to chats' : `Archived (${recentChats.filter((c) => c.archived).length})`}
-          </Button>
-        )}
-
         <RecentChatsList
-          chats={recentChats.filter((c) => c.archived === showArchived)}
+          chats={recentChats}
           activeId={conversationId}
+          showArchived={showArchived}
           onSelect={openConversation}
           onDelete={handleDelete}
           onAvatarClick={(c) => c.info.user_id && setViewUserId(c.info.user_id)}
           onSetFlag={(c, flag, value) => setFlag(c.id, flag, value)}
         />
+
       </div>
       <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', padding: 24 }}>
         <div style={{

@@ -68,6 +68,7 @@ export function markConversationRead(conversationId: number) {
 }
 
 
+
 // NEW — nicknames (private, only you see the ones you set)
 
 /** One place that decides what name to show. Use this everywhere instead of
@@ -106,9 +107,9 @@ export type ConversationSummary = {
   info: ConversationInfo;
   last_message: { id: number; preview: string; timestamp: string; sender_id: number } | null;
   unread_count: number;
-  pinned: boolean;             // NEW
-  muted: boolean;              // NEW
-  archived: boolean;           // NEW
+  pinned: boolean;
+  muted: boolean;
+  archived: boolean;
 };
 
 export async function fetchConversations(): Promise<ConversationSummary[]> {

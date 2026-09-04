@@ -59,7 +59,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             return ""
         if request.user.id == obj.user_id:
-            return ""  # you don't nickname yourself
+            return ""  # you dont nickname yourself
         contact = Contact.objects.filter(owner=request.user, target=obj.user_id).first()
         return contact.nickname if contact else ""
 
@@ -81,7 +81,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data.pop("password2")
         return User.objects.create_user(**validated_data)
 
-
 # groups
 
 class ConversationListSerializer(serializers.ModelSerializer):
@@ -90,8 +89,8 @@ class ConversationListSerializer(serializers.ModelSerializer):
     last_message = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
     pinned = serializers.SerializerMethodField()
-    muted = serializers.SerializerMethodField()
     archived = serializers.SerializerMethodField()
+    muted = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation  # model that im serializing
