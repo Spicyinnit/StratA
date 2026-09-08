@@ -1,13 +1,15 @@
 import { createContext, useContext, useMemo, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { createTheme, ThemeProvider } from '@mui/material';
+import { createTheme, ThemeProvider, useMediaQuery } from '@mui/material';
 import type { WallpaperKey } from './wallpapers';
 
 type Mode = 'light' | 'dark';
+type Pref = Mode | 'system';
 
 const Ctx = createContext<{
-  mode: Mode;
-  setMode: (m: Mode) => void;
+  mode: Mode;          // read-only
+  pref: Pref;
+  setPref: (p: Pref) => void;
   wallpaper: WallpaperKey;
   setWallpaper: (w: WallpaperKey) => void;
   wallpaperPos: string;
@@ -17,8 +19,8 @@ const Ctx = createContext<{
 export const useAppTheme = () => useContext(Ctx);
 
 export function AppThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<Mode>(
-    () => (localStorage.getItem('mode') as Mode) || 'light'
+  const [pref, setPrefState] = useState<Pref>(
+    () => (localStorage.getItem('pref') as Pref) || 'system'
   );
   const [wallpaper, setWallpaperState] = useState<WallpaperKey>(
     () => (localStorage.getItem('wallpaper') as WallpaperKey) || 'none'
@@ -27,7 +29,9 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
     () => localStorage.getItem('wallpaperPos') || '0px 0px'
   );
 
-  const setMode = (m: Mode) => { localStorage.setItem('mode', m); setModeState(m); };
+  const systemMode = useMediaQuery('(prefers-color-scheme: dark)') ? 'dark' : 'light';
+  const mode: Mode = pref === 'system' ? systemMode : pref;
+  const setPref = (p: Pref) => { localStorage.setItem('pref', p); setPrefState(p); };
   const setWallpaper = (w: WallpaperKey) => { localStorage.setItem('wallpaper', w); setWallpaperState(w); };
 
   const randomizeWallpaper = () => {
@@ -75,7 +79,7 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
   }, [mode]);
 
   return (
-    <Ctx.Provider value={{ mode, setMode, wallpaper, setWallpaper, wallpaperPos, randomizeWallpaper }}>
+    <Ctx.Provider value={{ mode, pref, setPref, wallpaper, setWallpaper, wallpaperPos, randomizeWallpaper }}>
       <ThemeProvider theme={theme}>{children}</ThemeProvider>
     </Ctx.Provider>
   );

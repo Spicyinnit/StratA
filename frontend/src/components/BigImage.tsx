@@ -5,8 +5,42 @@ export default function BigImage({ part }: { part: any }) {
   const [open, setOpen] = useState(false);
 
   if (!part?.url) return null;
-  // guard: only render actual images
-  if (part.mediaType && !part.mediaType.startsWith('image/')) {
+
+  const type = part.mediaType ?? '';
+
+  if (type.startsWith('video/')) {
+    return (
+      <Box
+        key={part.url}
+        component="video"
+        src={part.url}
+        controls
+        preload="metadata"
+        sx={{
+          maxWidth: 280,
+          maxHeight: 320,
+          borderRadius: 2,
+          display: 'block',
+          backgroundColor: '#000',
+        }}
+      />
+    );
+  }
+
+  if (type.startsWith('audio/')) {
+    return (
+      <Box
+        key={part.url}
+        component="audio"
+        src={part.url}
+        controls
+        preload="metadata"
+        sx={{ width: 260, display: 'block' }}
+      />
+    );
+  }
+
+  if (!type.startsWith('image/')) {
     return <a href={part.url} target="_blank" rel="noreferrer">{part.filename ?? 'file'}</a>;
   }
 
@@ -24,7 +58,7 @@ export default function BigImage({ part }: { part: any }) {
           height: 'auto',
           objectFit: 'contain',
           borderRadius: 2,
-          display: 'block', 
+          display: 'block',
           cursor: 'pointer',
           transition: 'opacity .15s',
           '&:hover': { opacity: 0.85 },

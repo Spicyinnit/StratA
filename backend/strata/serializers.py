@@ -8,16 +8,23 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username',]
 
-
 class MessageSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(use_url=True, required=False)
+    media = serializers.SerializerMethodField()
     sender_avatar = serializers.SerializerMethodField()
     sender_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
-        fields = ['id', 'sender', 'sender_avatar', 'sender_name', 'text', 'image', 'timestamp']
+        fields = ['id', 'sender', 'sender_avatar', 'sender_name', 'text', 'image', 'media', 'timestamp', 'is_read']
 
+    def get_media(self, obj):
+        f = obj.image or obj.file
+        if not f:
+            return None
+        request = self.context.get('request')
+        url = f.url
+        return request.build_absolute_uri(url) if request else url
     def get_sender_avatar(self, obj):
         try:
             profile = obj.sender.profile

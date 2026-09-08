@@ -39,7 +39,7 @@ function ChatApp() {
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [showArchived, setShowArchived] = React.useState(false);
 
-const { recentChats, refresh, markRead, remove, setFlag } = useRecentChats(conversationId);
+  const { recentChats, refresh, markRead, remove, setFlag } = useRecentChats(conversationId);
 
   // the row for whatevers open the header knows what to show
   const active = recentChats.find((c) => c.id === conversationId) ?? null;
@@ -106,6 +106,15 @@ const { recentChats, refresh, markRead, remove, setFlag } = useRecentChats(conve
   }, [conversationId, meId]);
 
   const { send } = useChatSocket(conversationId, loadMessages);
+  
+    React.useEffect(() => {
+    document.querySelectorAll('[data-message-id]').forEach((row) => {
+      const id = (row as HTMLElement).dataset.messageId;
+      const msg: any = messages.find((m: any) => String(m.id) === id);
+      if (msg?.isRead) row.setAttribute('data-read', 'true');
+      else row.removeAttribute('data-read');
+    });
+  }, [messages]);
 
   React.useEffect(() => {
     if (!conversationId) {
@@ -114,6 +123,13 @@ const { recentChats, refresh, markRead, remove, setFlag } = useRecentChats(conve
     }
     loadMessages();
   }, [loadMessages, conversationId]);
+
+  const filePartRoot = React.useCallback((props: any) => {
+    const msg = messages.find((m: any) => String(m.id) === String(props.ownerState?.messageId));
+    const filePart: any = msg?.parts?.find((p: any) => p.type === 'file');
+    if (!filePart?.url) return null;
+    return <BigImage key={String(msg?.id)} part={filePart} />;
+  }, [messages]);
 
   const adapter = React.useMemo(
     () => ({
@@ -162,7 +178,7 @@ const { recentChats, refresh, markRead, remove, setFlag } = useRecentChats(conve
           <span style={{ color: light ? '#2A211A' : '#F5EDE2', fontWeight: 600, fontSize: 14 }}>
             {profile?.display_name || user!.username}
           </span>
-                    <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
+          <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
             <IconButton onClick={() => setGroupOpen(true)} size="small" sx={{ color: light ? '#C2410C' : '#E2571E' }} title="New group">
               <GroupAddIcon fontSize="small" />
             </IconButton>
@@ -215,9 +231,9 @@ const { recentChats, refresh, markRead, remove, setFlag } = useRecentChats(conve
             }} />
           )}
 
-  <div style={{ position: 'relative', height: '100%', zIndex: 1 }}>
+          <div style={{ position: 'relative', height: '100%', zIndex: 1 }}>
             <ChatProvider adapter={adapter}>
-              <ChatBox
+              <ChatBox 
                 sx={{
                   backgroundColor: 'transparent',
                   height: '100%',
@@ -228,6 +244,13 @@ const { recentChats, refresh, markRead, remove, setFlag } = useRecentChats(conve
                   '& .MuiChatMessage-inlineMeta': {
                     color: 'inherit',
                     opacity: 0.65,
+                  },
+                  '& [data-is-own-message="true"] .MuiChatMessage-inlineMeta::after': {
+                    content: '"✓"',
+                    marginLeft: '4px',
+                  },
+                  '& [data-read="true"] [data-is-own-message="true"] .MuiChatMessage-inlineMeta::after': {
+                    content: '"✓✓"',
                   },
                 }}
                 adapter={adapter}
@@ -241,14 +264,7 @@ const { recentChats, refresh, markRead, remove, setFlag } = useRecentChats(conve
                   messageContent: {
                     partProps: {
                       file: {
-                        slots: {
-                          root: (props: any) => {
-                            const msg = messages.find((m: any) => String(m.id) === String(props.ownerState?.messageId));
-                            const filePart: any = msg?.parts?.find((p: any) => p.type === 'file');
-                            if (!filePart?.url) return null;
-                            return <BigImage part={filePart} />;
-                          },
-                        },
+                        slots: { root: filePartRoot },
                       },
                     },
                   },

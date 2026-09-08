@@ -17,5 +17,5 @@ createRoot(document.getElementById('root')!).render(
 )
 
 
-// { StrictMode } is reacts paranoid dev mode
+// <StrictMode> is reacts paranoid dev mode
 

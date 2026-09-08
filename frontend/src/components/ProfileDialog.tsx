@@ -11,12 +11,12 @@ import {
   Dialog,
   DialogContent,
   Divider,
-  FormControlLabel,
   IconButton,
   Stack,
-  Switch,
   TextField,
   Typography,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import { API_BASE, apiFetch } from "../api";
 import { useAuth } from "../AuthContext";
@@ -38,7 +38,7 @@ export default function ProfileDialog({
   onClose: () => void;
 }) {
   const { user, logout, refreshProfile } = useAuth();
-  const { mode, setMode, wallpaper, setWallpaper, randomizeWallpaper } = useAppTheme();
+  const { mode, pref, setPref, wallpaper, setWallpaper, randomizeWallpaper } = useAppTheme();
   const [profile, setP] = useState<Profile>(EMPTY);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -196,15 +196,20 @@ export default function ProfileDialog({
             <Divider />
             <Typography variant="subtitle2">Appearance</Typography>
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={mode === "dark"}
-                  onChange={(e) => setMode(e.target.checked ? "dark" : "light")}
-                />
-              }
-              label="Dark mode"
-            />
+          <Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Theme
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={pref}
+              onChange={(_, v) => v && setPref(v)}>
+              <ToggleButton value="light">Light</ToggleButton>
+              <ToggleButton value="system">System</ToggleButton>
+              <ToggleButton value="dark">Dark</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
 
             <Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>

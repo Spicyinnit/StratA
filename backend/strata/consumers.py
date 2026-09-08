@@ -50,6 +50,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "message": event["message"],
         }))
 
+    # NEW — fired by mark_read in views.py via group_send({"type": "read.receipt", ...})
+    async def read_receipt(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "read_receipt",
+            "reader_id": event["reader_id"],
+            "conversation_id": event["conversation_id"],
+        }))
+
     # NEW — fetch instead of create; the REST endpoints own creation now
     @database_sync_to_async
     def get_conversation(self):

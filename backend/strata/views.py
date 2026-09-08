@@ -1,7 +1,4 @@
-from urllib import request
-
 from django.db import models
-from django.http import request
 from django.shortcuts import render, get_object_or_404
 from rest_framework import generics
 from rest_framework.decorators import api_view, parser_classes
@@ -244,11 +241,15 @@ def send_message(request, conversation_id):
     if not convo.participants.filter(id=request.user.id).exists():
         return Response({'detail': 'not your conversation'}, status=403)
 
+    upload = request.FILES.get('image') or request.FILES.get('file')
+    is_image = bool(upload) and upload.content_type.startswith('image/')
+
     msg = Message.objects.create(
         conversation=convo,
         sender=request.user,
         text=request.data.get('text', ''),
-        image=request.FILES.get('image'),
+        image=upload if is_image else None,
+        file=None if is_image else upload,
     )
 
     # NEW — one room per conversation, works for 2 people or 20
@@ -276,7 +277,16 @@ def mark_read(request, conversation_id):
     if not convo.participants.filter(id=request.user.id).exists():
         return Response({'detail': 'not your conversation'}, status=403)
 
-    convo.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+    updated = convo.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+    if updated:
+        async_to_sync(get_channel_layer().group_send)(
+            convo.room_group_name,     # convo_<id>
+            {
+                "type": "read_receipt",
+                "reader_id": request.user.id,
+                "conversation_id": convo.id,
+            },
+        )
     return Response(status=204)
 
 
@@ -411,17 +421,6 @@ def remove_member(request, conversation_id, user_id):
 
     convo.participants.remove(user_id)
     return Response(GroupDetailSerializer(convo, context={'request': request}).data)
-
-@api_view(['PATCH'])
-def set_conversation_state(request, conversation_id):
-    convo = get_object_or_404(Conversation, id=conversation_id, participants=request.user)
-    state, _ = ConversationState.objects.get_or_create(user=request.user, conversation=convo)
-    for f in ('pinned', 'archived', 'muted'):
-        if f in request.data:
-            setattr(state, f, bool(request.data[f]))
-    state.save()
-    return Response({'pinned': state.pinned, 'archived': state.archived, 'muted': state.muted})
-
 
 @api_view(['POST'])
 def leave_group(request, conversation_id):

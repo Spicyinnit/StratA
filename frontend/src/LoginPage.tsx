@@ -1,17 +1,23 @@
 import { useState } from 'react';
-import { Box, Card, TextField, Button, Typography, Alert, Link } from '@mui/material';
+import { Box, Card, TextField, Button, Typography, Alert, Link,IconButton, InputAdornment, } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from './AuthContext';
+import { useAppTheme } from './Themes';
+import { WALLPAPERS } from './wallpapers';
 
 export default function LoginPage() {
   const { login, register } = useAuth();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const { mode } = useAppTheme();
+  const paper = WALLPAPERS.arrows[mode];
+  const [tab, setTab] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
-  const isRegister = mode === 'register';
+  const isRegister = tab === 'register';
 
   async function handleSubmit() {
     setError('');
@@ -31,7 +37,7 @@ export default function LoginPage() {
   }
 
   function switchMode() {
-    setMode(isRegister ? 'login' : 'register');
+    setTab(isRegister ? 'login' : 'register');
     setError('');
     setPassword('');
     setPassword2('');
@@ -43,12 +49,23 @@ export default function LoginPage() {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        minHeight: '100vh',
-        width: '100vw',
-        background: '#222222',
+        minHeight: '100%',
+        width: '100%',
+        position: 'relative',
+        overflow: 'hidden',
+        background: mode === 'dark' ? '#14100E' : '#E8DDC8',
         fontFamily: '"Inter", system-ui, sans-serif',
-      }}
-    >
+      }}>
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `url(${paper})`,
+          backgroundRepeat: 'repeat',
+          backgroundSize: 1750,
+          opacity: mode === 'dark' ? 0.12 : 0.28,
+          pointerEvents: 'none',
+        }}/>
       <Card
         sx={{
           p: 4,
@@ -58,8 +75,15 @@ export default function LoginPage() {
           gap: 2.5,
           background: '#FAF3E1',
           borderRadius: 4,
-          border: '1px solid #d8cba8',
+          position: 'relative',
+          zIndex: 1,
+          border: `1px solid ${mode === 'dark' ? '#d8cba8' : '#C2410C'}`,
           boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+          '& .MuiOutlinedInput-notchedOutline': { borderColor: '#C9B896' },
+          '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#8a7854' },
+          '& .MuiInputLabel-root': { color: '#8a7854' },
+          '& .MuiOutlinedInput-input': { color: '#222222' },
+          '& .MuiIconButton-root': { color: '#8a7854' },
         }}
       >
         <Box sx={{ mb: 1 }}>
@@ -73,7 +97,8 @@ export default function LoginPage() {
               lineHeight: 1.1,
             }}
           >
-            Strata<Box component="span" sx={{ color: '#FF6D1F' }}>.</Box>
+            Strata<Box component="span"
+            sx={{ color: '#FF6D1F' }}>.</Box>
           </Typography>
           <Typography sx={{ fontFamily: '"Inter", system-ui, sans-serif', fontSize: 14, color: '#8a7854', mt: 0.5 }}>
             {isRegister ? 'Create your account' : 'Welcome back'}
@@ -91,16 +116,30 @@ export default function LoginPage() {
         />
         <TextField
           label="Password"
-          type="password"
+          type={showPw ? 'text' : 'password'}
           size="small"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !isRegister && handleSubmit()}
+          slotProps={{
+            input: {
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="toggle password visibility"
+                  onClick={() => setShowPw(!showPw)}
+                >
+                  {showPw ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+            },
+          }}
         />
         {isRegister && (
           <TextField
             label="Confirm password"
-            type="password"
+            type={showPw ? 'text' : 'password'}
             size="small"
             value={password2}
             onChange={(e) => setPassword2(e.target.value)}

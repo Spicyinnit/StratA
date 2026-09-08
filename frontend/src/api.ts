@@ -2,14 +2,19 @@ export const API_BASE = `http://${window.location.hostname}:8000`;
 export const TAG_REGEX = /^[a-zA-Z0-9_.]{3,30}$/;
 
 
+const MEDIA_TYPES: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg', jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  mp4: 'video/mp4', webm: 'video/webm', mov: 'video/mp4',
+  mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', m4a: 'audio/mp4',
+};
+
 export function guessMediaType(url: string) {
   const clean = url.split('?')[0].split('#')[0];
-  const ext = clean.split('.').pop()?.toLowerCase();
-  if (ext === 'png') return 'image/png';
-  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
-  if (ext === 'gif') return 'image/gif';
-  if (ext === 'webp') return 'image/webp';
-  return 'application/octet-stream';
+  const ext = clean.split('.').pop()?.toLowerCase() ?? '';
+  return MEDIA_TYPES[ext] ?? 'application/octet-stream';
 }
 
 export function toChatMessages(apiMessages: any[], meId: number) {
@@ -17,6 +22,7 @@ export function toChatMessages(apiMessages: any[], meId: number) {
     id: String(m.id),
     conversationId: 'main',
     createdAt: m.timestamp,
+    isRead: m.is_read,
     role: m.sender === meId ? 'user' as const : 'assistant' as const,
     author: {
       id: String(m.sender),
@@ -25,7 +31,7 @@ export function toChatMessages(apiMessages: any[], meId: number) {
     },
     parts: [
       ...(m.text ? [{ type: 'text' as const, text: m.text }] : []),
-      ...(m.image ? [{type: 'file' as const,url: m.image.startsWith('http') ? m.image : `${API_BASE}${m.image}`, mediaType: guessMediaType(m.image),}] : []),
+      ...(m.media ? [{ type: 'file' as const, url: m.media, mediaType: guessMediaType(m.media) }] : []),
     ],
   }));
 }
@@ -118,12 +124,11 @@ export async function fetchConversations(): Promise<ConversationSummary[]> {
   return res.json();
 }
 
-
-// NEW — per-user chat flags (pin / mute / archive)
+// pin mute archive
 
 export type ConversationFlags = { pinned: boolean; muted: boolean; archived: boolean };
 
-/** Send any subset — omitted flags stay as they are. Returns all three. */
+
 export async function setConversationState(
   conversationId: number,
   changes: Partial<ConversationFlags>,
@@ -137,7 +142,7 @@ export async function setConversationState(
 }
 
 
-// NEW — groups
+// groups
 
 export type GroupMember = {
   user_id: number;

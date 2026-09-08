@@ -12,7 +12,8 @@ export function useChatSocket(conversationId: number | null, onMessage: () => vo
   React.useEffect(() => {
     if (!conversationId) return;
 
-    const token = JSON.parse(localStorage.getItem('auth') || '{}').token;
+    const auth = JSON.parse(localStorage.getItem('auth') || '{}');
+    const token = auth.token;
     if (!token) return;
 
     const ws = new WebSocket(`${WS_BASE}/ws/chat/${conversationId}/?token=${token}`);
@@ -21,6 +22,9 @@ export function useChatSocket(conversationId: number | null, onMessage: () => vo
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
       if (data.type === 'message.new') cbRef.current();
+      if (data.type === 'read_receipt' && data.reader_id !== auth.user_id) {
+        cbRef.current();
+      }
     };
     ws.onclose = (e) => {
       if (e.code === 4003) console.warn('ws rejected — not a participant of', conversationId);
