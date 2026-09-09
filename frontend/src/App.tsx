@@ -19,6 +19,8 @@ import ConfirmDialog from './components/ConfirmDialog';
 import NewGroupDialog from './components/NewGroupDialog';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import ArchiveIcon from '@mui/icons-material/Archive';
+import GroupSettings from './components/GroupSettings';
+
 
 function ChatApp() {
   const { user, profile } = useAuth();
@@ -33,7 +35,8 @@ function ChatApp() {
   );
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [viewUserId, setViewUserId] = React.useState<number | null>(null);
-  const [groupOpen, setGroupOpen] = React.useState(false);          // NEW
+  const [groupOpen, setGroupOpen] = React.useState(false);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [pending, setPending] = React.useState<RecentChat | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
@@ -44,9 +47,9 @@ function ChatApp() {
   // the row for whatevers open the header knows what to show
   const active = recentChats.find((c) => c.id === conversationId) ?? null;
 
-  const conversations: ChatConversation[] = [
-    { id: 'main', title: active ? nameFor(active.info) : 'No chat selected', readState: 'read' },
-  ];
+const conversations: ChatConversation[] = [
+  { id: 'main', title: '', readState: 'read' },
+];
 
   const openConversation = (c: RecentChat) => {
     markRead(c.id);
@@ -195,7 +198,7 @@ function ChatApp() {
           </div>
         </div>
 
-        <SearchBar meId={meId} onSelect={(u) => setViewUserId(u.user_id)} />
+        <SearchBar onSelect={(u) => setViewUserId(u.user_id)} />
 
         <RecentChatsList
           chats={recentChats}
@@ -203,8 +206,15 @@ function ChatApp() {
           showArchived={showArchived}
           onSelect={openConversation}
           onDelete={handleDelete}
-          onAvatarClick={(c) => c.info.user_id && setViewUserId(c.info.user_id)}
           onSetFlag={(c, flag, value) => setFlag(c.id, flag, value)}
+          onAvatarClick={(c) => {
+            if (c.is_group) {
+              setConversationId(c.id);
+              localStorage.setItem(`activeChat_${meId}`, String(c.id));
+              setSettingsOpen(true);
+            } else if (c.info.user_id) {
+              setViewUserId(c.info.user_id);
+            }}}
         />
 
       </div>
@@ -230,13 +240,40 @@ function ChatApp() {
               transition: 'background-position 0.35s ease',
             }} />
           )}
-
-          <div style={{ position: 'relative', height: '100%', zIndex: 1 }}>
+          <div style={{ position: 'relative', height: '100%', zIndex: 1, display: 'flex', flexDirection: 'column' }}>
+              {active && (
+                <div
+                  onClick={() =>
+                    active.is_group
+                      ? setSettingsOpen(true)
+                      : active.info.user_id && setViewUserId(active.info.user_id)
+                  }
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '12px 16px', cursor: 'pointer', flexShrink: 0,
+                    background: light ? '#FAF3E1' : '#1C1815',
+                    borderBottom: `1px solid ${light ? '#D9CBAE' : '#322B27'}`,
+                  }}
+                >
+                  <Avatar
+                    src={active.info.avatar ?? undefined}
+                    variant={active.is_group ? 'rounded' : 'circular'}
+                    sx={{ width: 36, height: 36 }}
+                  >
+                    {nameFor(active.info)[0]?.toUpperCase()}
+                  </Avatar>
+                  <span style={{ color: light ? '#2A211A' : '#F5EDE2', fontWeight: 600, fontSize: 15 }}>
+                    {nameFor(active.info)}
+                  </span>
+                </div>
+              )}
             <ChatProvider adapter={adapter}>
               <ChatBox 
                 sx={{
                   backgroundColor: 'transparent',
-                  height: '100%',
+                  flex: 1,
+                  minHeight: 0,
+                  '& .MuiChatConversation-header': { display: 'none' },
                   '& [data-is-own-message="true"] .MuiChatMessage-bubble': {
                     backgroundColor: light ? '#F7DDCC' : '#E2571E',
                     color: light ? '#5C2408' : '#FFFFFF',
@@ -286,7 +323,6 @@ function ChatApp() {
         onNicknameSaved={refresh}
       />
 
-      {/* NEW */}
       <NewGroupDialog
         open={groupOpen}
         meId={meId}
@@ -297,15 +333,21 @@ function ChatApp() {
           localStorage.setItem(`activeChat_${meId}`, String(group.id));
           refresh();
         }}
-      />
-
+        />
+        <GroupSettings
+          open={settingsOpen}
+          conversationId={conversationId}
+          meId={meId}
+          onClose={() => setSettingsOpen(false)}
+          onUpdated={refresh}
+         />
       <ConfirmDialog
         open={!!pending}
         title={pending?.is_group ? 'Leave group?' : 'Delete chat?'}
         message={
           pending?.is_group
-            ? `You'll stop receiving messages from ${pending ? nameFor(pending.info) : ''}.`
-            : `This erases all messages with ${pending ? nameFor(pending.info) : ''} for both of you.`
+            ? `You won't receive messages from ${pending ? nameFor(pending.info) : ''}.`
+            : `This deletes the chat with ${pending ? nameFor(pending.info) : ''} for both of you.`
         }
         confirmLabel={pending?.is_group ? 'Leave' : 'Delete'}
         onCancel={() => setPending(null)}

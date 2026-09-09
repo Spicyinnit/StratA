@@ -3,11 +3,10 @@ import { apiFetch } from '../api';
 import { useAppTheme } from '../Themes';
 
 type Props = {
-  meId: number;
   onSelect: (u: { user_id: number; tag: string; avatar: string | null }) => void;
 };
 
-export function SearchBar({ meId, onSelect }: Props) {
+export function SearchBar({ onSelect }: Props) {
   const { mode } = useAppTheme();
   const light = mode === 'light';
   const [query, setQuery] = React.useState('');

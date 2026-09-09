@@ -75,12 +75,10 @@ export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarC
           >
             <div
               onClick={(e) => {
-                // click bosuna gitmesin
-                if (c.is_group) return;
                 e.stopPropagation();
                 onAvatarClick(c);
               }}
-              title={c.is_group ? undefined : 'View profile'}
+              title={c.is_group ? 'Group settings' : 'View profile'}
               style={{
                 width: 32,
                 height: 32,
@@ -94,7 +92,7 @@ export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarC
                 fontWeight: 600,
                 flexShrink: 0,
                 overflow: 'hidden',
-                cursor: c.is_group ? 'inherit' : 'pointer',
+                cursor: 'pointer',
               }}
             >
               {c.info.avatar ? (

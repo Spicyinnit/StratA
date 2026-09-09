@@ -2,12 +2,6 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Conversation, ConversationState, Message, UserProfile, Contact
 
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username',]
-
 class MessageSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(use_url=True, required=False)
     media = serializers.SerializerMethodField()
@@ -169,8 +163,21 @@ class GroupDetailSerializer(serializers.ModelSerializer):
         return request.build_absolute_uri(url) if request else url
 
     def get_members(self, obj):
-        return obj.participants.values('id', 'username', 'profile__display_name')
-
+        request = self.context.get('request')
+        rows = []
+        for u in obj.participants.select_related('profile'):
+            profile = getattr(u, 'profile', None)
+            avatar = None
+            if profile and profile.avatar:
+                avatar = request.build_absolute_uri(profile.avatar.url) if request else profile.avatar.url
+            rows.append({
+                'user_id': u.id,
+                'tag': u.username,
+                'display_name': (profile.display_name if profile else '') or u.username,
+                'avatar': avatar,
+                'is_owner': u.id == obj.owner_id,
+            })
+        return rows
     class Meta:
         model = Conversation
         fields = ['id', 'is_group', 'name', 'avatar_url', 'owner', 'members', 'created_at']

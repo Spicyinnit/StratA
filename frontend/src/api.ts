@@ -198,3 +198,15 @@ export async function leaveGroup(conversationId: number): Promise<void> {
   const res = await apiFetch(`/api/groups/${conversationId}/leave/`, { method: 'POST' });
   if (!res.ok) throw new Error('Could not leave group');
 }
+
+export async function updateGroup(
+  conversationId: number,
+  changes: { name?: string; avatar?: File },
+): Promise<GroupDetail> {
+  const fd = new FormData();
+  if (changes.name !== undefined) fd.append('name', changes.name);
+  if (changes.avatar) fd.append('avatar', changes.avatar);
+  const res = await apiFetch(`/api/groups/${conversationId}/`, { method: 'PATCH', body: fd });
+  if (!res.ok) throw new Error((await res.json()).detail ?? 'Could not update group');
+  return res.json();
+}

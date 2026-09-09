@@ -11,8 +11,6 @@ urlpatterns = [
     path('profile/me/', views.MyProfileView.as_view(), name='my-profile'),
 
     # app
-    path('', views.home),
-    path('users/', views.user_list),
     path('users/<int:pk>/', views.UserDetailView.as_view(), name='user-detail'),
     path('users/<int:user_id>/nickname/', views.set_nickname, name='set-nickname'),  # usernaem part
     path('search-users/', views.search_users, name='search-users'),

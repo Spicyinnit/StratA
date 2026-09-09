@@ -1,5 +1,5 @@
 from django.db import models
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
@@ -13,7 +13,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from .models import Conversation, Message, UserProfile, Contact, ConversationState
 from .serializers import (
-    UserProfileSerializer, UserSerializer, ConversationSerializer,
+    UserProfileSerializer, ConversationSerializer,
     MessageSerializer, RegisterSerializer,
     ConversationListSerializer, GroupDetailSerializer,
 )
@@ -149,17 +149,6 @@ def search_users(request):
             'avatar': avatar,
         })
     return Response(data)
-
-
-@api_view(['GET'])
-def user_list(request):
-    users = User.objects.all()
-    return Response(UserSerializer(users, many=True).data)
-
-
-def home(request):
-    return render(request, "home.html")
-
 
 # conversations
 

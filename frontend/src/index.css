@@ -10,7 +10,6 @@ html, body, #root {
 }
 
 /*scrollbar styles vvv*/
-
 * {
   scrollbar-width: thin;
   scrollbar-color: #4a4a4a transparent;
