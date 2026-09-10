@@ -2,34 +2,30 @@ import * as React from 'react';
 import { ChatBox } from '@mui/x-chat';
 import { ChatProvider } from '@mui/x-chat/headless';
 import type { ChatConversation, ChatMessage } from '@mui/x-chat/headless';
-import { Avatar, IconButton, Snackbar, ToggleButton } from '@mui/material';
+import { Avatar, Snackbar } from '@mui/material';
 import { apiFetch, toChatMessages, deleteConversationWith, leaveGroup, nameFor } from './api';
 import { useRecentChats, type RecentChat } from './hooks/useSidebarChats';
 import { useChatSocket } from './hooks/useChatWebSocket';
-import { SearchBar } from './components/sidebar/SearchBar';
-import { Sidebar } from './components/sidebar/Sidebar';
-import ProfileDialog from './components/MyProfile';
-import BigImage from './components/chat/BigMedia';
 import { useAuth } from './UserSession';
-import LoginPage from './LoginPage';
 import { useAppTheme } from './Theme';
 import { WALLPAPERS } from './wallpapers';
-import OtherUserProfile from './components/OtherProfile';
-import ConfirmDialog from './components/ConfirmDeletion';
-import NewGroupDialog from './components/GroupCreate';
-import GroupAddIcon from '@mui/icons-material/GroupAdd';
-import ArchiveIcon from '@mui/icons-material/Archive';
+import LoginPage from './LoginPage';
+import { Sidebar } from './components/sidebar/Sidebar';
+import BigMedia from './components/chat/BigMedia';
+import MyProfile from './components/MyProfile';
+import OtherProfile from './components/OtherProfile';
+import GroupCreate from './components/GroupCreate';
 import GroupSettings from './components/GroupSettings';
-
+import ConfirmDeletion from './components/ConfirmDeletion';
 
 function ChatApp() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { wallpaper, mode, wallpaperPos } = useAppTheme();
   const wp = WALLPAPERS[wallpaper][mode];
   const meId = user!.id;
   const light = mode === 'light';
 
-  // NEW — the app is keyed on a conversation now, not on the other user
+  // the app is keyed on a conversation, not on the other user
   const [conversationId, setConversationId] = React.useState<number | null>(
     () => Number(localStorage.getItem(`activeChat_${user!.id}`)) || null,
   );
@@ -40,16 +36,15 @@ function ChatApp() {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [pending, setPending] = React.useState<RecentChat | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
-  const [showArchived, setShowArchived] = React.useState(false);
 
   const { recentChats, refresh, markRead, remove, setFlag } = useRecentChats(conversationId);
 
-  // the row for whatevers open the header knows what to show
+  // the row for whatever's open, so the header knows what to show
   const active = recentChats.find((c) => c.id === conversationId) ?? null;
 
-const conversations: ChatConversation[] = [
-  { id: 'main', title: '', readState: 'read' },
-];
+  const conversations: ChatConversation[] = [
+    { id: 'main', title: '', readState: 'read' },
+  ];
 
   const openConversation = (c: RecentChat) => {
     markRead(c.id);
@@ -57,7 +52,7 @@ const conversations: ChatConversation[] = [
     localStorage.setItem(`activeChat_${meId}`, String(c.id));
   };
 
-  // NEW — search and profile hand us a user, so resolve the DM first
+  // search and profile hand us a user, so resolve the DM first
   const openDmWith = async (userId: number) => {
     try {
       const res = await apiFetch(`/api/conversations/${meId}/${userId}/`);
@@ -79,7 +74,7 @@ const conversations: ChatConversation[] = [
     if (!c) return;
     setPending(null);
     try {
-      // NEW — leaving a group and deleting a DM are different actions
+      // leaving a group and deleting a DM are different actions
       if (c.is_group) {
         await leaveGroup(c.id);
       } else if (c.info.user_id) {
@@ -109,8 +104,9 @@ const conversations: ChatConversation[] = [
   }, [conversationId, meId]);
 
   const { send } = useChatSocket(conversationId, loadMessages);
-  
-    React.useEffect(() => {
+
+  // read receipts: mark rows so the CSS can draw ✓✓
+  React.useEffect(() => {
     document.querySelectorAll('[data-message-id]').forEach((row) => {
       const id = (row as HTMLElement).dataset.messageId;
       const msg: any = messages.find((m: any) => String(m.id) === id);
@@ -131,7 +127,7 @@ const conversations: ChatConversation[] = [
     const msg = messages.find((m: any) => String(m.id) === String(props.ownerState?.messageId));
     const filePart: any = msg?.parts?.find((p: any) => p.type === 'file');
     if (!filePart?.url) return null;
-    return <BigImage key={String(msg?.id)} part={filePart} />;
+    return <BigMedia key={String(msg?.id)} part={filePart} />;
   }, [messages]);
 
   const adapter = React.useMemo(
@@ -171,53 +167,26 @@ const conversations: ChatConversation[] = [
 
   return (
     <div style={{ height: '100vh', width: '100vw', display: 'flex', background: light ? '#E8DDC8' : '#14100E', fontFamily: '"Inter", system-ui, sans-serif' }}>
-      <div style={{ width: 280, flexShrink: 0, background: light ? '#F5EDE2' : '#1C1815', borderRight: `1px solid ${light ? '#D9CBAE' : '#2A2320'}`, display: 'flex', flexDirection: 'column', padding: '20px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <IconButton onClick={() => setProfileOpen(true)} sx={{ p: 0.5 }}>
-            <Avatar src={profile?.avatar ?? undefined} sx={{ width: 40, height: 40 }}>
-              {(profile?.display_name || user!.username)[0]?.toUpperCase()}
-            </Avatar>
-          </IconButton>
-          <span style={{ color: light ? '#2A211A' : '#F5EDE2', fontWeight: 600, fontSize: 14 }}>
-            {profile?.display_name || user!.username}
-          </span>
-          <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
-            <IconButton onClick={() => setGroupOpen(true)} size="small" sx={{ color: light ? '#C2410C' : '#E2571E' }} title="New group">
-              <GroupAddIcon fontSize="small" />
-            </IconButton>
-            <ToggleButton
-              value="archived"
-              selected={showArchived}
-              onChange={() => setShowArchived((v) => !v)}
-              size="small"
-              sx={{ border: 'none', color: light ? '#8A7A62' : '#9A8D82', '&.Mui-selected': { color: light ? '#C2410C' : '#E2571E' } }}
-              title="Archive"
-            >
-              <ArchiveIcon fontSize="small" />
-            </ToggleButton>
-          </div>
-        </div>
+      <Sidebar
+        chats={recentChats}
+        activeId={conversationId}
+        onSelect={openConversation}
+        onDelete={handleDelete}
+        onSetFlag={(c, flag, value) => setFlag(c.id, flag, value)}
+        onAvatarClick={(c) => {
+          if (c.is_group) {
+            setConversationId(c.id);
+            localStorage.setItem(`activeChat_${meId}`, String(c.id));
+            setSettingsOpen(true);
+          } else if (c.info.user_id) {
+            setViewUserId(c.info.user_id);
+          }
+        }}
+        onOpenProfile={() => setProfileOpen(true)}
+        onNewGroup={() => setGroupOpen(true)}
+        onSearchSelect={setViewUserId}
+      />
 
-        <SearchBar onSelect={(u) => setViewUserId(u.user_id)} />
-
-        <Sidebar
-          chats={recentChats}
-          activeId={conversationId}
-          showArchived={showArchived}
-          onSelect={openConversation}
-          onDelete={handleDelete}
-          onSetFlag={(c, flag, value) => setFlag(c.id, flag, value)}
-          onAvatarClick={(c) => {
-            if (c.is_group) {
-              setConversationId(c.id);
-              localStorage.setItem(`activeChat_${meId}`, String(c.id));
-              setSettingsOpen(true);
-            } else if (c.info.user_id) {
-              setViewUserId(c.info.user_id);
-            }}}
-        />
-
-      </div>
       <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', padding: 24 }}>
         <div style={{
           flex: 1,
@@ -241,34 +210,34 @@ const conversations: ChatConversation[] = [
             }} />
           )}
           <div style={{ position: 'relative', height: '100%', zIndex: 1, display: 'flex', flexDirection: 'column' }}>
-              {active && (
-                <div
-                  onClick={() =>
-                    active.is_group
-                      ? setSettingsOpen(true)
-                      : active.info.user_id && setViewUserId(active.info.user_id)
-                  }
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '12px 16px', cursor: 'pointer', flexShrink: 0,
-                    background: light ? '#FAF3E1' : '#1C1815',
-                    borderBottom: `1px solid ${light ? '#D9CBAE' : '#322B27'}`,
-                  }}
+            {active && (
+              <div
+                onClick={() =>
+                  active.is_group
+                    ? setSettingsOpen(true)
+                    : active.info.user_id && setViewUserId(active.info.user_id)
+                }
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '12px 16px', cursor: 'pointer', flexShrink: 0,
+                  background: light ? '#FAF3E1' : '#1C1815',
+                  borderBottom: `1px solid ${light ? '#D9CBAE' : '#322B27'}`,
+                }}
+              >
+                <Avatar
+                  src={active.info.avatar ?? undefined}
+                  variant={active.is_group ? 'rounded' : 'circular'}
+                  sx={{ width: 36, height: 36 }}
                 >
-                  <Avatar
-                    src={active.info.avatar ?? undefined}
-                    variant={active.is_group ? 'rounded' : 'circular'}
-                    sx={{ width: 36, height: 36 }}
-                  >
-                    {nameFor(active.info)[0]?.toUpperCase()}
-                  </Avatar>
-                  <span style={{ color: light ? '#2A211A' : '#F5EDE2', fontWeight: 600, fontSize: 15 }}>
-                    {nameFor(active.info)}
-                  </span>
-                </div>
-              )}
+                  {nameFor(active.info)[0]?.toUpperCase()}
+                </Avatar>
+                <span style={{ color: light ? '#2A211A' : '#F5EDE2', fontWeight: 600, fontSize: 15 }}>
+                  {nameFor(active.info)}
+                </span>
+              </div>
+            )}
             <ChatProvider adapter={adapter}>
-              <ChatBox 
+              <ChatBox
                 sx={{
                   backgroundColor: 'transparent',
                   flex: 1,
@@ -312,8 +281,9 @@ const conversations: ChatConversation[] = [
         </div>
       </div>
 
-      <ProfileDialog open={profileOpen} onClose={() => setProfileOpen(false)} />
-      <OtherUserProfile
+      <MyProfile open={profileOpen} onClose={() => setProfileOpen(false)} />
+
+      <OtherProfile
         userId={viewUserId}
         onClose={() => setViewUserId(null)}
         onMessage={(u) => {
@@ -323,7 +293,7 @@ const conversations: ChatConversation[] = [
         onNicknameSaved={refresh}
       />
 
-      <NewGroupDialog
+      <GroupCreate
         open={groupOpen}
         meId={meId}
         onClose={() => setGroupOpen(false)}
@@ -333,15 +303,17 @@ const conversations: ChatConversation[] = [
           localStorage.setItem(`activeChat_${meId}`, String(group.id));
           refresh();
         }}
-        />
-        <GroupSettings
-          open={settingsOpen}
-          conversationId={conversationId}
-          meId={meId}
-          onClose={() => setSettingsOpen(false)}
-          onUpdated={refresh}
-         />
-      <ConfirmDialog
+      />
+
+      <GroupSettings
+        open={settingsOpen}
+        conversationId={conversationId}
+        meId={meId}
+        onClose={() => setSettingsOpen(false)}
+        onUpdated={refresh}
+      />
+
+      <ConfirmDeletion
         open={!!pending}
         title={pending?.is_group ? 'Leave group?' : 'Delete chat?'}
         message={
