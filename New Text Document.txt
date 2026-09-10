@@ -44,3 +44,22 @@ git commit -m "patch"
 git push -u origin main 
 
 ------------------------------------------------------------------------
+
+ main.tsx will get an update ??
+ cause i need to make somethign like;
+
+if correct then chatbox 
+else login screen again 
+idk why but it should be here 
+
+
+                                frontend
+ frontend files gotta be also changed ( names ) somethign that will be understandable when being read.
+ componenets should have an subfolder for some small files,
+ and also i need to understand which file has what.
+  like in big image i should understand that it has  videos images audio.
+
+                          backend
+ backend ( locations ) gotta be divided in two pieces... ( apps chat config )
+
+----------------------------

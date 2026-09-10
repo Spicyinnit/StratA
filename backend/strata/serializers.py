@@ -85,7 +85,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 # groups
 
 class ConversationListSerializer(serializers.ModelSerializer):
-    """One flat shape for DMs and groups so the sidebar has a single code path."""
+    """One flat shape for DMs and groups so the sidebar has a single code path"""
     info = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()

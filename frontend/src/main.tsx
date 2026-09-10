@@ -5,6 +5,7 @@ import App from './App.tsx'
 import { AuthProvider } from './AuthContext.tsx'
 import { AppThemeProvider } from './Themes.tsx'
 
+//here dude
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -15,7 +16,6 @@ createRoot(document.getElementById('root')!).render(
     </AppThemeProvider>
   </StrictMode>,
 )
-
 
 // <StrictMode> is reacts paranoid dev mode
 
