@@ -4,7 +4,6 @@ import { apiFetch, deleteConversationWith, leaveGroup, nameFor } from './api';
 import { useSidebarChats, type RecentChat } from './hooks/useSidebarChats';
 import { useAuth } from './UserSession';
 import { useAppTheme } from './Theme';
-import LoginPage from './LoginPage';
 import ChatPage from './ChatPage';
 import { Sidebar } from './components/sidebar/Sidebar';
 import MyProfile from './components/MyProfile';
@@ -13,7 +12,7 @@ import GroupCreate from './components/GroupCreate';
 import GroupSettings from './components/GroupSettings';
 import ConfirmDeletion from './components/ConfirmDeletion';
 
-function ChatApp() {
+export default function App() {
   const { user } = useAuth();
   const { mode } = useAppTheme();
   const meId = user!.id;
@@ -164,9 +163,4 @@ function ChatApp() {
       />
     </div>
   );
-}
-
-export default function App() {
-  const { user } = useAuth();
-  return user ? <ChatApp /> : <LoginPage />;
 }
