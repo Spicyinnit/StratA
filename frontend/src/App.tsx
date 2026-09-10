@@ -7,7 +7,7 @@ import { apiFetch, toChatMessages, deleteConversationWith, leaveGroup, nameFor }
 import { useRecentChats, type RecentChat } from './hooks/useSidebarChats';
 import { useChatSocket } from './hooks/useChatWebSocket';
 import { SearchBar } from './components/sidebar/SearchBar';
-import { RecentChatsList } from './components/sidebar/Sidebar';
+import { Sidebar } from './components/sidebar/Sidebar';
 import ProfileDialog from './components/MyProfile';
 import BigImage from './components/chat/BigMedia';
 import { useAuth } from './UserSession';
@@ -200,7 +200,7 @@ const conversations: ChatConversation[] = [
 
         <SearchBar onSelect={(u) => setViewUserId(u.user_id)} />
 
-        <RecentChatsList
+        <Sidebar
           chats={recentChats}
           activeId={conversationId}
           showArchived={showArchived}

@@ -1,13 +1,9 @@
-import * as React from 'react';
 import type { RecentChat } from '../../hooks/useSidebarChats';
 import { useAppTheme } from '../../Theme';
 import { nameFor } from '../../api';
-//django icon imports
-import { Menu, MenuItem, } from '@mui/material';
+import { ChatMenu } from './ChatMenu';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import PushPinIcon from '@mui/icons-material/PushPin';
-
 
 type Props = {
   chats: RecentChat[];
@@ -19,13 +15,9 @@ type Props = {
   onSetFlag: (c: RecentChat, flag: 'pinned' | 'muted' | 'archived', value: boolean) => void;
 };
 
-export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarClick, onSetFlag, showArchived }: Props) {
+export function Sidebar({ chats, activeId, onSelect, onDelete, onAvatarClick, onSetFlag, showArchived }: Props) {
   const { mode } = useAppTheme();
   const light = mode === 'light';
-
-  const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
-  const [menuChat, setMenuChat] = React.useState<RecentChat | null>(null);
-  const closeMenu = () => { setMenuAnchor(null); setMenuChat(null); };
 
   const accent = light ? '#C2410C' : '#E2571E';
   const textColor = light ? '#2A211A' : '#F5EDE2';
@@ -135,47 +127,12 @@ export function RecentChatsList({ chats, activeId, onSelect, onDelete, onAvatarC
               </span>
             )}
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setMenuAnchor(e.currentTarget);
-                setMenuChat(c);
-              }}
-              style={{
-                marginLeft: showBadge ? 6 : 'auto',
-                background: 'none',
-                border: 'none',
-                color: muted,
-                cursor: 'pointer',
-                fontSize: 18,
-                padding: '0 4px',
-                lineHeight: 1,
-              }}
-              title="Options">
-            <MoreVertIcon sx={{ fontSize: 18 }} />
-            </button>
+          <div style={{ marginLeft: showBadge ? 6 : 'auto' }}>
+          <ChatMenu chat={c} color={muted} onSetFlag={onSetFlag} onDelete={onDelete} />
+          </div>
           </div>
         );
       })}
-
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={closeMenu}
-        onClick={(e) => e.stopPropagation()}>
-        <MenuItem onClick={() => { onSetFlag(menuChat!, 'pinned', !menuChat!.pinned); closeMenu(); }}>
-          {menuChat?.pinned ? 'Unpin' : 'Pin'}
-        </MenuItem>
-        <MenuItem onClick={() => { onSetFlag(menuChat!, 'muted', !menuChat!.muted); closeMenu(); }}>
-          {menuChat?.muted ? 'Unmute' : 'Mute'}
-        </MenuItem>
-        <MenuItem onClick={() => { onSetFlag(menuChat!, 'archived', !menuChat!.archived); closeMenu(); }}>
-          {menuChat?.archived ? 'Unarchive' : 'Archive'}
-        </MenuItem>
-        <MenuItem onClick={() => { onDelete(menuChat!); closeMenu(); }} sx={{ color: '#D14343' }}>
-          {menuChat?.is_group ? 'Leave group' : 'Delete chat'}
-        </MenuItem>
-      </Menu>
     </div>
   );
 }
