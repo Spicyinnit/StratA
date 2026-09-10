@@ -142,7 +142,7 @@ export default function ChatPage({ conversationId, active, onHeaderClick }: Prop
               <Avatar
                 src={active.info.avatar ?? undefined}
                 variant={active.is_group ? 'rounded' : 'circular'}
-                sx={{ width: 36, height: 36 }}
+                sx={{ bgcolor: 'primary.main', color: '#14100E', width: 32, height: 32, fontSize: 16, fontWeight: 600 }}
               >
                 {nameFor(active.info)[0]?.toUpperCase()}
               </Avatar>

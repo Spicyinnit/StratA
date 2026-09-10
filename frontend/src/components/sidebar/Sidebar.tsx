@@ -129,7 +129,7 @@ export function Sidebar({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#FFFFFF',
+                    color: '#14100E',
                     fontSize: 14,
                     fontWeight: 600,
                     flexShrink: 0,

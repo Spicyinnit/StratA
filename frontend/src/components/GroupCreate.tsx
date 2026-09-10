@@ -77,6 +77,7 @@ export default function GroupCreate({ open, meId, onClose, onCreated }: Props) {
 
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <TextField
+          sx={{ mt: 1 }}
           autoFocus
           label="Group name"
           value={name}

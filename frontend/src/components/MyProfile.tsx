@@ -18,6 +18,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@mui/material";
+import EditIcon from '@mui/icons-material/Edit';
 import { API_BASE, apiFetch } from "../api";
 import { useUserSession } from "../UserSession";
 
@@ -131,12 +132,13 @@ export default function MyProfile({
                     size="small"
                     onClick={() => fileRef.current?.click()}
                     sx={{
+                      width: 32, height: 32, p: 0,
                       bgcolor: "primary.main",
                       color: "primary.contrastText",
                       "&:hover": { bgcolor: "primary.dark" },
                     }}
                   >
-                    ✎
+                    <EditIcon sx={{ fontSize: 18 }} />
                   </IconButton>
                 }
               >
