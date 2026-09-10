@@ -1,5 +1,5 @@
 """
-ASGI config for strata1 project.
+ASGI config for config project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 
@@ -14,12 +14,12 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django_asgi_app = get_asgi_application()
 
 from channels.routing import ProtocolTypeRouter, URLRouter
-from strata.middleware import TokenAuthMiddleware
-import strata.routing
+from chat.middleware import TokenAuthMiddleware
+import chat.routing
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
     "websocket": TokenAuthMiddleware(
-        URLRouter(strata.routing.websocket_urlpatterns)
+        URLRouter(chat.routing.websocket_urlpatterns)
     ),
 })

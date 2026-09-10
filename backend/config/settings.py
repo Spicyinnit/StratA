@@ -21,7 +21,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
-    "strata"
+    "chat",
+    "users",
 ]
 
 MIDDLEWARE = [
