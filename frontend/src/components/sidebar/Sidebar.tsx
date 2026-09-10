@@ -1,7 +1,7 @@
 import * as React from 'react';
-import type { RecentChat } from '../hooks/useRecentChats';
-import { useAppTheme } from '../Themes';
-import { nameFor } from '../api';
+import type { RecentChat } from '../../hooks/useSidebarChats';
+import { useAppTheme } from '../../Theme';
+import { nameFor } from '../../api';
 //django icon imports
 import { Menu, MenuItem, } from '@mui/material';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';

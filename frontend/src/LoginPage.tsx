@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Box, Card, TextField, Button, Typography, Alert, Link,IconButton, InputAdornment, } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { useAuth } from './AuthContext';
-import { useAppTheme } from './Themes';
+import { useAuth } from './UserSession';
+import { useAppTheme } from './Theme';
 import { WALLPAPERS } from './wallpapers';
 
 export default function LoginPage() {

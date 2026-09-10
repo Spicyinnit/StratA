@@ -1,4 +1,4 @@
-import { useAppTheme } from "../Themes";
+import { useAppTheme } from "../Theme";
 import { WALLPAPERS, type WallpaperKey } from "../wallpapers";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -19,7 +19,7 @@ import {
   ToggleButtonGroup,
 } from "@mui/material";
 import { API_BASE, apiFetch } from "../api";
-import { useAuth } from "../AuthContext";
+import { useAuth } from "../UserSession";
 
 type Profile = {
   display_name: string;

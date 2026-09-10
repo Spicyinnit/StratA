@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { apiFetch } from '../api';
-import { useAppTheme } from '../Themes';
+import { apiFetch } from '../../api';
+import { useAppTheme } from '../../Theme';
 
 type Props = {
   onSelect: (u: { user_id: number; tag: string; avatar: string | null }) => void;
