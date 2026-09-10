@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Box, Card, TextField, Button, Typography, Alert, Link,IconButton, InputAdornment, } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { useAuth } from './UserSession';
+import { useUserSession } from './UserSession';
 import { useAppTheme } from './Theme';
 import { WALLPAPERS } from './wallpapers';
 
 export default function LoginPage() {
-  const { login, register } = useAuth();
+  const { login, register } = useUserSession();
   const { mode } = useAppTheme();
   const paper = WALLPAPERS.arrows[mode];
   const [tab, setTab] = useState<'login' | 'register'>('login');

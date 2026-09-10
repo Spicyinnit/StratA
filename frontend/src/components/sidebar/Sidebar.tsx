@@ -7,7 +7,7 @@ import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import type { RecentChat } from '../../hooks/useSidebarChats';
 import { useAppTheme } from '../../Theme';
-import { useAuth } from '../../UserSession';
+import { useUserSession } from '../../UserSession';
 import { nameFor } from '../../api';
 import { SearchBar } from './SearchBar';
 import { ChatMenu } from './ChatMenu';
@@ -28,7 +28,7 @@ export function Sidebar({
   chats, activeId, onSelect, onDelete, onAvatarClick, onSetFlag,
   onOpenProfile, onNewGroup, onSearchSelect,
 }: Props) {
-  const { user, profile } = useAuth();
+  const { user, profile } = useUserSession();
   const { mode } = useAppTheme();
   const light = mode === 'light';
   const [showArchived, setShowArchived] = React.useState(false);

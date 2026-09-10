@@ -19,7 +19,7 @@ import {
   ToggleButtonGroup,
 } from "@mui/material";
 import { API_BASE, apiFetch } from "../api";
-import { useAuth } from "../UserSession";
+import { useUserSession } from "../UserSession";
 
 type Profile = {
   display_name: string;
@@ -37,7 +37,7 @@ export default function MyProfile({
   open: boolean;
   onClose: () => void;
 }) {
-  const { user, logout, refreshProfile } = useAuth();
+  const { user, logout, refreshProfile } = useUserSession();
   const { mode, pref, setPref, wallpaper, setWallpaper, randomizeWallpaper } = useAppTheme();
   const [profile, setP] = useState<Profile>(EMPTY);
   const [file, setFile] = useState<File | null>(null);

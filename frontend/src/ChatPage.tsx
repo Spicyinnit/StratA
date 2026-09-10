@@ -6,7 +6,7 @@ import { Avatar } from '@mui/material';
 import { apiFetch, toChatMessages, nameFor } from './api';
 import type { RecentChat } from './hooks/useSidebarChats';
 import { useChatWebSocket } from './hooks/useChatWebSocket';
-import { useAuth } from './UserSession';
+import { useUserSession } from './UserSession';
 import { useAppTheme } from './Theme';
 import { WALLPAPERS } from './wallpapers';
 import BigMedia from './components/chat/BigMedia';
@@ -23,7 +23,7 @@ const conversations: ChatConversation[] = [
 ];
 
 export default function ChatPage({ conversationId, active, onHeaderClick }: Props) {
-  const { user } = useAuth();
+  const { user } = useUserSession();
   const { wallpaper, mode, wallpaperPos } = useAppTheme();
   const wp = WALLPAPERS[wallpaper][mode];
   const meId = user!.id;

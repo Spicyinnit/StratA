@@ -3,12 +3,12 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import LoginPage from './LoginPage.tsx'
-import { AuthProvider, useAuth } from './UserSession.tsx'
+import { UserSessionProvider, useUserSession } from './UserSession.tsx'
 import { AppThemeProvider } from './Theme.tsx'
 
 // auth gate: logged in → the app, not logged in → login page
 function Root() {
-  const { user } = useAuth()
+  const { user } = useUserSession()
   return user ? <App /> : <LoginPage />
 }
 
@@ -16,9 +16,9 @@ createRoot(document.getElementById('root')!).render(
   // StrictMode = React's dev-only checks, does nothing in production
   <StrictMode>
     <AppThemeProvider>
-      <AuthProvider>
+      <UserSessionProvider>
         <Root />
-      </AuthProvider>
+      </UserSessionProvider>
     </AppThemeProvider>
   </StrictMode>,
 )

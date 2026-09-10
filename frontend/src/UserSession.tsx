@@ -15,7 +15,7 @@ type MyProfile = {
   avatar: string | null;
 };
 
-type AuthContextType = {
+type UserSessionContextType = {
   user: AuthUser | null;
   profile: MyProfile | null;
   refreshProfile: () => Promise<void>;
@@ -24,9 +24,9 @@ type AuthContextType = {
   logout: () => void;
 };
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const UserSessionContext = createContext<UserSessionContextType | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function UserSessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => {
     const saved = localStorage.getItem('auth');
     return saved ? JSON.parse(saved) : null;
@@ -105,14 +105,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, refreshProfile, login, register, logout }}>
+    <UserSessionContext.Provider value={{ user, profile, refreshProfile, login, register, logout }}>
       {children}
-    </AuthContext.Provider>
+    </UserSessionContext.Provider>
   );
 }
 
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
+export function useUserSession() {
+  const ctx = useContext(UserSessionContext);
+  if (!ctx) throw new Error('useUserSession must be used inside UserSessionProvider');
   return ctx;
 }

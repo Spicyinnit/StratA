@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Snackbar } from '@mui/material';
 import { apiFetch, deleteConversationWith, leaveGroup, nameFor } from './api';
 import { useSidebarChats, type RecentChat } from './hooks/useSidebarChats';
-import { useAuth } from './UserSession';
+import { useUserSession } from './UserSession';
 import { useAppTheme } from './Theme';
 import ChatPage from './ChatPage';
 import { Sidebar } from './components/sidebar/Sidebar';
@@ -13,7 +13,7 @@ import GroupSettings from './components/GroupSettings';
 import ConfirmDeletion from './components/ConfirmDeletion';
 
 export default function App() {
-  const { user } = useAuth();
+  const { user } = useUserSession();
   const { mode } = useAppTheme();
   const meId = user!.id;
   const light = mode === 'light';
