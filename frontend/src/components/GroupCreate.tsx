@@ -14,7 +14,7 @@ type Props = {
   onCreated: (group: GroupDetail) => void;
 };
 
-export default function NewGroupDialog({ open, meId, onClose, onCreated }: Props) {
+export default function GroupCreate({ open, meId, onClose, onCreated }: Props) {
   const [name, setName] = React.useState('');
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState<Found[]>([]);

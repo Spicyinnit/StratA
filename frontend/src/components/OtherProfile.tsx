@@ -26,7 +26,7 @@ type OtherProfile = {
   nickname: string;
 };
 
-export default function OtherUserProfile({
+export default function OtherProfile({
   userId,
   onClose,
   onMessage,

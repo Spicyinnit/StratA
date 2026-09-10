@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Box, Modal } from '@mui/material';
 
-export default function BigImage({ part }: { part: any }) {
+export default function BigMedia({ part }: { part: any }) {
   const [open, setOpen] = useState(false);
 
   if (!part?.url) return null;

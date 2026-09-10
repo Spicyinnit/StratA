@@ -30,7 +30,7 @@ type Profile = {
 
 const EMPTY: Profile = { display_name: "", tag: "", bio: "", avatar: null };
 
-export default function ProfileDialog({
+export default function MyProfile({
   open,
   onClose,
 }: {
