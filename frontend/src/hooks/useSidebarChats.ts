@@ -2,7 +2,7 @@ import * as React from 'react';
 import { fetchConversations, markConversationRead, setConversationState, type ConversationSummary } from '../api';
 
 export type RecentChat = ConversationSummary;
-export function useRecentChats(activeConversationId: number | null) {
+export function useSidebarChats(activeConversationId: number | null) {
   const [recentChats, setRecentChats] = React.useState<RecentChat[]>([]);
 
   const activeRef = React.useRef(activeConversationId);

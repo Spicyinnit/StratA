@@ -4,7 +4,7 @@ const WS_BASE = (import.meta.env.VITE_API_BASE ?? 'http://localhost:8000')
   .replace(/^http/, 'ws')
   .replace(/\/$/, '');
 
-export function useChatSocket(conversationId: number | null, onMessage: () => void) {
+export function useChatWebSocket(conversationId: number | null, onMessage: () => void) {
   const sockRef = React.useRef<WebSocket | null>(null);
   const cbRef = React.useRef(onMessage);
   cbRef.current = onMessage;

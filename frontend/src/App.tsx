@@ -4,8 +4,8 @@ import { ChatProvider } from '@mui/x-chat/headless';
 import type { ChatConversation, ChatMessage } from '@mui/x-chat/headless';
 import { Avatar, Snackbar } from '@mui/material';
 import { apiFetch, toChatMessages, deleteConversationWith, leaveGroup, nameFor } from './api';
-import { useRecentChats, type RecentChat } from './hooks/useSidebarChats';
-import { useChatSocket } from './hooks/useChatWebSocket';
+import { useSidebarChats, type RecentChat } from './hooks/useSidebarChats';
+import { useChatWebSocket } from './hooks/useChatWebSocket';
 import { useAuth } from './UserSession';
 import { useAppTheme } from './Theme';
 import { WALLPAPERS } from './wallpapers';
@@ -37,7 +37,7 @@ function ChatApp() {
   const [pending, setPending] = React.useState<RecentChat | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
-  const { recentChats, refresh, markRead, remove, setFlag } = useRecentChats(conversationId);
+  const { recentChats, refresh, markRead, remove, setFlag } = useSidebarChats(conversationId);
 
   // the row for whatever's open, so the header knows what to show
   const active = recentChats.find((c) => c.id === conversationId) ?? null;
@@ -103,7 +103,7 @@ function ChatApp() {
       .catch((err) => console.error(err));
   }, [conversationId, meId]);
 
-  const { send } = useChatSocket(conversationId, loadMessages);
+  const { send } = useChatWebSocket(conversationId, loadMessages);
 
   // read receipts: mark rows so the CSS can draw ✓✓
   React.useEffect(() => {
