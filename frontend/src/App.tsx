@@ -4,7 +4,7 @@ import { apiFetch, deleteConversationWith, leaveGroup, nameFor } from './api';
 import { useSidebarChats, type RecentChat } from './hooks/useSidebarChats';
 import { useUserSession } from './UserSession';
 import { useAppTheme } from './Theme';
-import ChatPage from './ChatPage';
+import ChatPage from './pages/ChatPage';
 import { Sidebar } from './components/sidebar/Sidebar';
 import MyProfile from './components/MyProfile';
 import OtherProfile from './components/OtherProfile';

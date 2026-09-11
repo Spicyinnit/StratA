@@ -115,7 +115,7 @@ export default function OtherProfile({
         {profile && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
-              <Avatar src={profile.avatar ?? undefined} sx={{ width: 88, height: 88, fontSize: 32 }}>
+              <Avatar sx={{ width: 88, height: 88, fontSize: 32, bgcolor: 'primary.main', color: '#14100E' }}>
                 {(profile.nickname || realName || "?")[0]?.toUpperCase()}
               </Avatar>
 
@@ -144,7 +144,7 @@ export default function OtherProfile({
                   </IconButton>
                 </Box>
               ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1, width: '100%' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 1, width: '100%' }}>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
                     {profile.nickname || realName}
                   </Typography>

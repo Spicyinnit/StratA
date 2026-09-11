@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Box, Card, TextField, Button, Typography, Alert, Link,IconButton, InputAdornment, } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { useUserSession } from './UserSession';
-import { useAppTheme } from './Theme';
-import { WALLPAPERS } from './wallpapers';
+import { useUserSession } from '../UserSession';
+import { useAppTheme } from '../Theme';
+import { WALLPAPERS } from '../wallpapers';
 
 export default function LoginPage() {
   const { login, register } = useUserSession();

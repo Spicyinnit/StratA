@@ -3,13 +3,13 @@ import { ChatBox } from '@mui/x-chat';
 import { ChatProvider } from '@mui/x-chat/headless';
 import type { ChatConversation, ChatMessage } from '@mui/x-chat/headless';
 import { Avatar } from '@mui/material';
-import { apiFetch, toChatMessages, nameFor } from './api';
-import type { RecentChat } from './hooks/useSidebarChats';
-import { useChatWebSocket } from './hooks/useChatWebSocket';
-import { useUserSession } from './UserSession';
-import { useAppTheme } from './Theme';
-import { WALLPAPERS } from './wallpapers';
-import BigMedia from './components/chat/BigMedia';
+import { apiFetch, toChatMessages, nameFor } from '../api';
+import type { RecentChat } from '../hooks/useSidebarChats';
+import { useChatWebSocket } from '../hooks/useChatWebSocket';
+import { useUserSession } from '../UserSession';
+import { useAppTheme } from '../Theme';
+import { WALLPAPERS } from '../wallpapers';
+import BigMedia from '../components/chat/BigMedia';
 
 type Props = {
   conversationId: number | null;
